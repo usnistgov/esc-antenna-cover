@@ -1,5 +1,5 @@
-
-class line:
+import math
+class Line:
     """
     A class for a line segment.
     """
@@ -7,26 +7,37 @@ class line:
         """
         Define a line segment.
         """
-        self.P1 = P1
-        self.P2 = P2
+        self.points =  []
+        self.points.append(P1)
+        self.points.append(P2)
+        # sort the line segment coordinates
+        self.points.sort(key=lambda x : x[0])
+        self.points.sort(key=lambda x : x[1])
     
     def get_p1(self):
-        return self.P1
+        return self.points[0]
         
     def get_p2(self):
-        return self.P2
+        return self.points[1]
 
     def slope(self):
         """
         Returns the slope or float('inf') if line is vertical.
         """
-        deltaY = float(self.P1[1] - self.P2[1])
-        deltaX = float(self.P1[0] - self.P2[0])
+        deltaY = float(self.points[0][1] - self.points[1][1])
+        deltaX = float(self.points[0][0] - self.points[1][0])
         # A very large slope if the line is vertical.
         if deltaX == 0:
             return float('inf')
         else:
             return deltaY/deltaX
 
-    def __str__( self ):
-        return '[ ' + str(self.P1) + " , " + str(self.P2) + ' ]'
+    def length(self):
+        x1 = self.points[0][0]
+        y1 = self.points[1][1]
+        x2 = self.points[1][0]
+        y2 = self.points[1][1]
+        return sqrt((x1 - x2)**2 + (y1-y2)**2)
+
+    def __repr__( self ):
+        return str(self.points)
