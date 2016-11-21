@@ -11,9 +11,16 @@ class Line:
         self.points.append(P1)
         self.points.append(P2)
         # sort the line segment coordinates
-        self.points.sort(key=lambda x : x[0])
-        self.points.sort(key=lambda x : x[1])
+        if self.points[0][0] != self.points[1][0]:
+       	    self.points.sort(key=lambda x : x[0])
+            self.sort_dimension = 0
+        else:
+            self.points.sort(key=lambda x : x[1])
+            self.sort_dimension = 1
     
+    def get_sort_dimension(self):
+        return self.sort_dimension
+
     def get_p1(self):
         return self.points[0]
         
