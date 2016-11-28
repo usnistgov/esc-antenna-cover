@@ -39,6 +39,7 @@ class CircleTest(unittest.TestCase):
         for li in l :
             print str(li)
 
+
     def testLineIntersectsCircle(self):
         p1 = [0,6]
         p2 = [4,-1]
@@ -54,7 +55,6 @@ class CircleTest(unittest.TestCase):
     def testLineIntersectsCircle2(self):
         p1 = [2,1]
         p2 = [9,7]
-        from line import line
         line_segment = Line(p1,p2)
         b,l = self.circle.collides(line_segment)
         self.assertTrue(b)
@@ -62,6 +62,15 @@ class CircleTest(unittest.TestCase):
         print '-------------------------------------'
         for li in l :
             print str(li)
+
+    def testLineMissesCircle(self):
+        p1 = [20,80]
+        p2 = [40,70]
+        line_segment = Line(p1,p2)
+        self.circle = Circle(center=[60,40], radius=20)
+        b,l = self.circle.collides(line_segment)
+        self.assertFalse(b)
+        self.assertTrue(len(l) == 1)
 
 if __name__ == 'main':
     unittest.main()

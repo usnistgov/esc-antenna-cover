@@ -83,8 +83,6 @@ def min_area_cover_for_line_brute_force(circles,l):
     found = False
     for t in permuted_circles:
         found,cover =  covers_line(t,l)
-        #if found:
-        #   print "cover ", cover, " cost " , cost(cover), " min_cost ", currentMinCost, " current Min Cover ", currentMinCover
         if found and cost(cover) < currentMinCost:
            currentMinCover = cover
            currentMinCost = cost(cover)
@@ -132,6 +130,8 @@ def min_area_cover_for_lines_greedy(circles,lines):
     The approach is to just cover each line in the lines set
     using the given circles starting from the smallest one.
     Then, take the uninon of these covers.
+
+    This is for the situation where you know
     """
     # coverset is the set of circles that covers the
     # given line set.
@@ -158,13 +158,23 @@ def min_area_cover_for_lines_greedy(circles,lines):
 def min_area_cover_greedy(centers,lines,cover):
     """
 
-    See http://stackoverflow.com/questions/40748412/minimun-area-geometric-cover-for-a-set-of-line-segments
+    See discussion on 
 
-    Find the worst point, i.e. the point requiring the largest additional circle area for its best circle center 
-    option with the corresponding line segment at least partially in the circle. 
+    http://stackoverflow.com/questions/40748412/minimun-area-geometric-cover-for-a-set-of-line-segments
+
+    Find the worst line, i.e. the line requiring the largest additional
+    circle area for its best circle center option with the corresponding
+    line segment entirely in the circle.
+
     Construct / extend the corresponding circle.
-    Remove fully covered line segments from the set and cut partially covered segments at the circle boundary.
+
+    Remove fully covered line segments from the set and cut partially
+    covered segments at the circle boundary.  
+
+    Remove the center from the set of possible centers.
+    
     Iterate until no more line segments remain.
+
     """
 
     def distance(p1,p2):
@@ -177,13 +187,8 @@ def min_area_cover_greedy(centers,lines,cover):
             retval = retval + l
         return retval
 
-    def cost(circle_collection):
-        total_area = 0
-        for c in circle_collection:
-            total_area = total_area + c.get_radius()**2
-        return total_area
 
-    max_min_distance =  -1
+    max_min_distance =  -1e6
     max_min_center = None
 
 
@@ -192,111 +197,34 @@ def min_area_cover_greedy(centers,lines,cover):
         mincenter = None
         # find the cheapest cover for each line. 
         for center in centers:
+            # The circle that can cover both endpoints of the line.
             dist = max(distance(center,line.get_p2()), distance(center,line.get_p1()))
             if dist < min_distance:
                 min_distance = dist
                 mincenter = center
+        # max_min_distance is the biggest minimum circle that covers any line in the
+        # collection.
         if min_distance > max_min_distance:
            max_min_distance = min_distance
            max_min_center = mincenter
 
-
     # At this point we have computed the max_min_distance over all lines and centers.
+    # add this circle to our cover list.
     c = circle.Circle(max_min_center,max_min_distance)
+    #pdb.set_trace()
     cover.append(c)
+    
+    # now check how much cover there is left behind.
     newlines = intersects_lines(c,lines)
     if len(newlines) == 0 :
-        print "cost = ",cost(cover)
         return cover
     else:
-        if len(centers) != 1:
-            centers.remove(max_min_center)
+        centers.remove(max_min_center)
         return min_area_cover_greedy(centers,newlines,cover)
     
                 
 
 
-def min_area_cover_discrete(centers,lines,brute=False):
-    """
-    The minimum area cover for a set of lines 
-    from circles centered at given locations.
-    This is a brute force algorithm that tries to find
-    the optimum radius assignments.
-    
-    Parameters:
-    
-        - centers: A list of coordinates for the centers of the sensor
-        - lines : A list of line segments denoting the protection zone.
-        - brute: A flag that tells us whether to use brute force search or not.
-
-    Returns:
-        
-        - A list of circles with minimum total area that covers the lines.
-
-    """
-    def distance(p1,p2):
-        return math.sqrt((p1[0]  - p2[0])**2 + (p1[1] - p2[1])**2)
-        
-    def cost(circle_collection):
-        total_area = 0
-        for c in circle_collection:
-            total_area = total_area + c.get_radius()**2
-        return total_area
-
-    max_distance = -1
-    min_distance = 1e6
-    # find the max distance from any center 
-    for line in lines:
-        for center in centers:
-            d = distance(center,line.get_p1())
-            if d > max_distance:
-                max_distance = d
-            if d < min_distance:
-                min_distance = d
-            d = distance(center,line.get_p2())
-            if d > max_distance:
-                max_distance = d
-            if d < min_distance:
-                min_distance = d
-
-    delta_r = (max_distance - min_distance) / 5
-    
-    # divide the range up into 5 segments (corresponding to 5 sensor powers)
-    radii  = np.arange(min_distance,max_distance + delta_r, delta_r)
-    print "radii ", radii
-
-    # Generate a permutation matrix of all possible radius permutations.
-    radius_assignments = [p for p in itertools.product(radii,repeat=len(centers))]
-    
-    min_cost = 1e6
-    min_cover = None
-
-    try:
-        for radius_assignment in radius_assignments:
-            for i in range(0,len(centers)):
-                circles_r = []
-                for r in radius_assignment:
-                    circle_i = circle.Circle(center = centers[i], radius=r)
-                    circles_r.append(circle_i)
-                if brute:
-                    t,cover = min_area_cover_for_lines_brute_force(circles_r,lines)
-                else:
-                    t,cover = min_area_cover_for_lines_greedy(circles_r,lines)
-                if t:
-                    try:
-                        _cost = cost(cover)
-                    except:
-                        pdb.set_trace()
-                    if _cost < min_cost:
-                        min_cost =  _cost
-                        min_cover = cover
-
-        print "min_cover " , str(min_cover), " min_cost ", str(min_cost)
-
-        return min_cover
-    except:
-        traceback.print_exc()
-        raise
         
     
             

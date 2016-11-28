@@ -4,6 +4,50 @@ sys.path.append('../')
 import circle
 import circles
 import line
+import pdb
+
+def cost(circle_collection):
+    total_area = 0
+    for c in circle_collection:
+        total_area = total_area + c.get_radius()**2
+    return total_area
+
+def printCover(lines,cover,centers,output_file):
+    X = []
+    Y = []
+    r = []
+    for c in cover:
+        X.append(c.get_center()[0])
+        Y.append(c.get_center()[1])
+        r.append(c.get_radius())
+
+    f = open(output_file,"w")
+
+    f.write("X = " + str(X) + ";\n")
+    f.write("Y = " + str(Y) + ";\n")
+    f.write("r = " + str(r) + ";\n")
+    f.write("centers = [X',Y'];\n")
+    f.write("viscircles (centers,r');\n")
+    for li in lines:
+        p1 = [li.get_p1()[0], li.get_p2()[0]]
+        p2 = [li.get_p1()[1], li.get_p2()[1]]
+        f.write("line(" + str(p1) + "," + str(p2)  + ");\n")
+
+    X = []
+    Y = []
+    r = []
+    for c in centers:
+        X.append(c[0])
+        Y.append(c[1])
+        r.append(1)
+
+    f.write("X = " + str(X) + ";\n")
+    f.write("Y = " + str(Y) + ";\n")
+    f.write("r = " + str(r) + ";\n")
+    f.write("centers = [X',Y'];\n")
+    f.write("viscircles (centers,r','Color','b');\n")
+    f.close()
+    
 
 class CirclesCoverTest(unittest.TestCase):
 
@@ -83,27 +127,34 @@ class CirclesCoverTest(unittest.TestCase):
         print "solnR = ",soln_r
 
     
-    def testMinimumCircleSetCoverForLineSet(self):
-        line_endpoints = [[20,80],[40,70],[60,60],[60,40],[80,30],[90,20]]
-        centers = [[10,70],[30,60],[50,55],[50,30],[60,20]]
-
-        line_segments = []
-        for i in range( len(line_endpoints) - 1 ):
-            line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-
-        print "line_segments ", line_segments
-
-        circles.min_area_cover_discrete(centers,line_segments)
 
     def testMinimumCircleSetCoverForLineSetGreedy(self):
-        line_endpoints = [[20,80],[40,70],[60,60],[60,40],[80,30],[90,20]]
+        line_endpoints = [[20,80],[40,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
         centers = [[10,70],[30,60],[50,55],[50,30],[60,20]]
-
+        savedCentrs = list(centers)
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-
         print "line_segments ", line_segments
+        circ = circles.min_area_cover_greedy(centers,line_segments,[])
+        print "circle_cover = ",circ, " cost = ", cost(circ)
+        # check that for every line segment, both endpoints are covered by
+        # at least one circle in our solution.
+        for line_segment in line_segments:
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p1()):
+                    covered = True
+            #self.assertTrue(covered)
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p2()):
+                    covered = True
+            #self.assertTrue(covered)
 
-        print circles.min_area_cover_greedy(centers,line_segments,[])
+        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy.m")
+    
+    
+        
+    
 

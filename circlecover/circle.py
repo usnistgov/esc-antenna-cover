@@ -97,6 +97,7 @@ class Circle:
             line_segment.get_p2() == pointlist[1] :
             # The line segment would intersect with circle if extended
             res = False
+	    retval.append(line_segment)
         elif line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[3] :
             # In this case there are 2 segments remaining
