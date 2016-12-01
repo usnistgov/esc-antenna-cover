@@ -17,18 +17,12 @@ def printCover(lines,cover,centers,output_file):
     X = []
     Y = []
     r = []
-    for c in cover:
-        X.append(c.get_center()[0])
-        Y.append(c.get_center()[1])
-        r.append(c.get_radius())
 
     f = open(output_file,"w")
 
     f.write("X = " + str(X) + ";\n")
     f.write("Y = " + str(Y) + ";\n")
     f.write("r = " + str(r) + ";\n")
-    f.write("centers = [X',Y'];\n")
-    f.write("viscircles (centers,r');\n")
     for li in lines:
         p1 = [li.get_p1()[0], li.get_p2()[0]]
         p2 = [li.get_p1()[1], li.get_p2()[1]]
@@ -44,9 +38,30 @@ def printCover(lines,cover,centers,output_file):
 
     f.write("X = " + str(X) + ";\n")
     f.write("Y = " + str(Y) + ";\n")
-    f.write("r = " + str(r) + ";\n")
+    f.write("r = 0.5*" + str(r) + ";\n")
     f.write("centers = [X',Y'];\n")
     f.write("viscircles (centers,r','Color','b');\n")
+
+    # Draw the cover
+    X = []
+    Y = []
+    r = []
+    for c in cover:
+        X.append(c.get_center()[0])
+        Y.append(c.get_center()[1])
+        r.append(c.get_radius())
+    f.write("X = " + str(X) + ";\n")
+    f.write("Y = " + str(Y) + ";\n")
+    f.write("centers = [X',Y'];\n")
+    f.write("r = " + str(r) + ";\n")
+    f.write("viscircles (centers,r','Color', 'r');\n")
+    # Draw the centers of the  cover
+    r = []
+    for c in cover:
+        r.append(1)
+    f.write("r = 0.5*" + str(r) + ";\n")
+    f.write("viscircles (centers,r','Color','g');\n")
+
     f.write("cost = " + str(cost(cover)))
     print "cost = " , str(cost(cover))
     f.close()
@@ -206,14 +221,19 @@ class CirclesCoverTest(unittest.TestCase):
         line_endpoints = []
         centers = []
         line_segments = []
-	random.seed(0)
+        random.seed(0)
+        start = [100,100]
+        end = [200,120]
+
+        p1 = start[0]
         for i in range(1,100):
-            p1 = random.randint(1,100)
-            p2 = random.randint(1,100)
+            p2 = random.randint(start[1],end[1])
             line_endpoints.append([p1,p2])
+            p1 = start[0] + float(end[0] - start[0])/float(100) * i
+
         for i in range(1,50):
-            p1 = random.randint(1,100)
-            p2 = random.randint(1,100)
+            p1 = random.randint(100,200)
+            p2 = random.randint(90,100)
             centers.append([p1,p2])
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))

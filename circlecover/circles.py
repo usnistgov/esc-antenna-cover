@@ -220,15 +220,29 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
 
         # At this point we have computed the max_min_distance over all lines and centers.
         # add this circle to our cover list.
-        c = circle.Circle(max_min_center,max_min_distance)
-        #pdb.set_trace()
-        cover.append(c)
-        # now check how much cover there is left behind.
+
+        found = False
+
+        for c in cover:
+            if c.get_center() == max_min_center:
+                newR = max(c.get_radius(),max_min_distance)
+                c.set_radius(newR)
+                found = True
+                break
+
+        if not found:
+            c = circle.Circle(max_min_center,max_min_distance)
+            #pdb.set_trace()
+      	    cover.append(c)
+        # now check how much of lines there is left behind.
         newlines = intersects_lines(c,lines)
         if len(newlines) == 0 :
+            # no more line segments left to cover -- we are done.
             return cover
         else:
-            centers.remove(max_min_center)
+            # If there are remaining line segments, iterate on the portion 
+            # that is left.
+            #centers.remove(max_min_center)
             return min_area_cover_greedy_worker(centers,newlines,cover)
 
     cover = [] 
