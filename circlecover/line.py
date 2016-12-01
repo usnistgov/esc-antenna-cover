@@ -39,6 +39,26 @@ class Line:
         else:
             return deltaY/deltaX
 
+    def split(self, segmentCount):
+        """
+        Split a line into multiple segments.
+	segmentCount : # of segments to split the line into.
+        """
+        segment_list = []
+        deltaY = float(self.points[1][1] - self.points[0][1])/float(segmentCount)
+        deltaX = float(self.points[1][0] - self.points[0][0])/float(segmentCount)
+        pi_0 = self.points[0]
+        for i in range(1,segmentCount):
+            yi = self.points[0][1] + deltaY*i
+            xi = self.points[0][0] + deltaX*i
+            pi_1 = [xi,yi]
+            segment_list.append(Line(pi_0,pi_1))
+            pi_0 = pi_1
+        pi_1 = self.points[1]
+        segment_list.append(Line(pi_0,pi_1))
+        return segment_list
+            
+
     def length(self):
         x1 = self.points[0][0]
         y1 = self.points[1][1]

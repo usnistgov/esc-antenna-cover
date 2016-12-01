@@ -1,6 +1,5 @@
 from __future__ import division
 import numpy as np
-import numpy.linalg.linalg as la
 import math
 import line
 import pdb
@@ -9,7 +8,6 @@ import pdb
 class Circle:
     """
     A circle class.
-    See http://codereview.stackexchange.com/questions/86421/line-segment-to-circle-collision-algorithm    
     """
     def __init__(self, center=None, radius=None):
         """
@@ -40,13 +38,38 @@ class Circle:
 
     def encloses(self, line_segment):
         """
-        line_segemnt: A line segment that is defined by two endpoints P1 and P2
+        line_segement: A line segment that is defined by two endpoints P1 and P2
         """
         P1 = line_segment.get_p1()
         P2 = line_segment.get_p2()
         return self.inside(P1) and self.inside(P2)
 
     def collides(self,line_segment):
+        """
+        Tests if a line_segment collides with this circle.
+        Return a pair (boolean,pieces).
+        
+        boolean : A boolean variable that indicates collision.
+
+        if boolean is True then a collision was detected.
+
+        if boolean is False then no collision was detected.
+
+        - if both endpoints of the segment are inside the circle then boolean is true.
+        - if both endpoints are outside, then boolean returns false.
+        - if one endpoint is inside and another is outside then boolean returns True.
+
+        pieces - a list of line segments that lie OUTSIDE the circle after
+        intersection is computed. That is:
+
+        - if the circle does not collide with the line segment, 
+          pieces contains a list consisting of one element which is the 
+          original line segment.
+        - if the circle includes both endpoints then pieces is an empty list.
+        - if the circle includes only one endpoint then pieces is a list of one line segment.
+
+        """
+        
 
         if self.encloses(line_segment):
             # Circle encloses line.  Return empty list.

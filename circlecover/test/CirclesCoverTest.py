@@ -47,6 +47,8 @@ def printCover(lines,cover,centers,output_file):
     f.write("r = " + str(r) + ";\n")
     f.write("centers = [X',Y'];\n")
     f.write("viscircles (centers,r','Color','b');\n")
+    f.write("cost = " + str(cost(cover)))
+    print "cost = " , str(cost(cover))
     f.close()
     
 
@@ -130,13 +132,13 @@ class CirclesCoverTest(unittest.TestCase):
     
 
     def testMinimumCircleSetCoverForLineSetGreedy(self):
-        line_endpoints = [[20,80],[40,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
+        line_endpoints = [[20,80],[50,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
         centers = [[10,70],[30,60],[50,55],[50,30],[60,20]]
         savedCentrs = list(centers)
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-        circ = circles.min_area_cover_greedy(centers,line_segments,[])
+        circ = circles.min_area_cover_greedy(centers,line_segments)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for line_segment in line_segments:
@@ -154,10 +156,57 @@ class CirclesCoverTest(unittest.TestCase):
         printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy.m")
 
 
+    def testMinimumCircleSetCoverForLineSetGreedy2(self):
+        line_endpoints = [[20,80],[50,70]]
+        centers = [[10,70],[40,60]]
+        savedCentrs = list(centers)
+        line_segments = []
+        for i in range( len(line_endpoints) - 1 ):
+            line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
+        circ = circles.min_area_cover_greedy(centers,line_segments)
+        # check that for every line segment, both endpoints are covered by
+        # at least one circle in our solution.
+        for line_segment in line_segments:
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p1()):
+                    covered = True
+            #self.assertTrue(covered)
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p2()):
+                    covered = True
+            #self.assertTrue(covered)
+        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy2.m")
+
+    def testMinimumCircleSetCoverForLineSetGreedy3(self):
+        line_endpoints = [[20,80],[50,70]]
+        centers = [[10,70],[30,60]]
+        savedCentrs = list(centers)
+        line_segments = []
+        for i in range( len(line_endpoints) - 1 ):
+            line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
+        circ = circles.min_area_cover_greedy(centers,line_segments)
+        # check that for every line segment, both endpoints are covered by
+        # at least one circle in our solution.
+        for line_segment in line_segments:
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p1()):
+                    covered = True
+            #self.assertTrue(covered)
+            covered = False
+            for c in circ:
+                if c.inside(line_segment.get_p2()):
+                    covered = True
+            #self.assertTrue(covered)
+        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy3.m")
+
     def testMinimumCircleSetCoverForLineSetGreedyRandom(self):
         line_endpoints = []
         centers = []
-	line_segments = []
+        line_segments = []
+	random.seed(0)
         for i in range(1,100):
             p1 = random.randint(1,100)
             p2 = random.randint(1,100)
@@ -169,7 +218,7 @@ class CirclesCoverTest(unittest.TestCase):
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         savedCentrs = list(centers)
-        circ = circles.min_area_cover_greedy(centers,line_segments,[])
+        circ = circles.min_area_cover_greedy(centers,line_segments)
         for line_segment in line_segments:
             covered = False
             for c in circ:
