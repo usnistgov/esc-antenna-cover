@@ -25,7 +25,7 @@ class Circle:
         try:
        	    x = point[0]
             y = point[1]
-       	    return (x- self.Q[0])**2 + (y - self.Q[1])**2 <= self.r**2
+       	    return (x- self.Q[0])**2 + (y - self.Q[1])**2 <= self.r**2 + self.r*.0005
         except:
             pdb.set_trace()
             
@@ -92,7 +92,7 @@ class Circle:
         # In both cases, there is no part of the line that
         # is covered.
         if disc < 0 or disc == 0:
-            return False,[line_segment],[]
+            return False,[line_segment],None
         sqrt_disc = math.sqrt(disc)
         sign_dy = 1
         if dy < 0:
@@ -119,7 +119,8 @@ class Circle:
         # We now have 4 colinear points. 
         # Check the location of the original points of the line segment.
         retval = []
-        covered = None
+        # covered is a set of segments inside the circle.
+        covered = []
         res = True
         if line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[1] :
@@ -143,12 +144,12 @@ class Circle:
             if not np.allclose(pointlist[0],pointlist[1]):
             	l1 = line.Line(pointlist[0],pointlist[1])
             	retval.append(l1)
-            covered = line.Line(pointlist[1],pointlist[2])
+            covered = line.Line(pointlist[3],pointlist[3])
         elif line_segment.get_p2() == pointlist[3] :
             if not np.allclose(pointlist[2],pointlist[3]):
             	l2 = line.Line(pointlist[2],pointlist[3])
             	retval.append(l2)
-            covered = line.Line(pointlist[1],pointlist[2])
+            covered = line.Line(pointlist[0],pointlist[1])
         return res,retval,covered
 
 

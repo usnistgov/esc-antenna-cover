@@ -153,7 +153,7 @@ class CirclesCoverTest(unittest.TestCase):
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-        circ = circles.min_area_cover_greedy(centers,line_segments)
+        circ,covered_segments = circles.min_area_cover_greedy(centers,line_segments)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for line_segment in line_segments:
@@ -178,7 +178,7 @@ class CirclesCoverTest(unittest.TestCase):
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-        circ = circles.min_area_cover_greedy(centers,line_segments)
+        circ,segments = circles.min_area_cover_greedy(centers,line_segments)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for line_segment in line_segments:
@@ -201,7 +201,7 @@ class CirclesCoverTest(unittest.TestCase):
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-        circ = circles.min_area_cover_greedy(centers,line_segments)
+        circ,segments = circles.min_area_cover_greedy(centers,line_segments)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for line_segment in line_segments:
@@ -209,12 +209,12 @@ class CirclesCoverTest(unittest.TestCase):
             for c in circ:
                 if c.inside(line_segment.get_p1()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
             covered = False
             for c in circ:
                 if c.inside(line_segment.get_p2()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
         printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy3.m")
 
     def testMinimumCircleSetCoverForLineSetGreedyRandom(self):
@@ -226,10 +226,11 @@ class CirclesCoverTest(unittest.TestCase):
         end = [200,120]
 
         p1 = start[0]
-        for i in range(1,100):
+        nsteps = 200
+        for i in range(1,nsteps):
             p2 = random.randint(start[1],end[1])
             line_endpoints.append([p1,p2])
-            p1 = start[0] + float(end[0] - start[0])/float(100) * i
+            p1 = start[0] + float(end[0] - start[0])/float(nsteps) * i
 
         for i in range(1,50):
             p1 = random.randint(100,200)
@@ -238,17 +239,27 @@ class CirclesCoverTest(unittest.TestCase):
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         savedCentrs = list(centers)
-        circ = circles.min_area_cover_greedy(centers,line_segments)
+        circ,included = circles.min_area_cover_greedy(centers,line_segments)
         for line_segment in line_segments:
             covered = False
             for c in circ:
                 if c.inside(line_segment.get_p1()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
             covered = False
             for c in circ:
                 if c.inside(line_segment.get_p2()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
+
+        # The returned fragments are enclosed in the 
+        # corresponding circles. Lets check for that.
+        for i in range(0,len(circ)):
+            c = circ[i]
+            lines = included[i]
+            # check if each line segment is inside a circle.
+            for lineset in lines:
+                for k in lineset:
+                    self.assertTrue(c.encloses(k))
 
         printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
