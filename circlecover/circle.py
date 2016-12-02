@@ -73,7 +73,7 @@ class Circle:
 
         if self.encloses(line_segment):
             # Circle encloses line.  Return empty list.
-            return True,[]
+            return True,[],line_segment
 
         # Translate the center of the circle to 0
         # The line segment moves as a result.
@@ -89,18 +89,22 @@ class Circle:
         disc = (self.r**2)*(dr_sqr) - D**2
         # discriminant is < 0 then no intersection.
         # discriminant is 0 then tangent.
+        # In both cases, there is no part of the line that
+        # is covered.
         if disc < 0 or disc == 0:
-            return False,[line_segment]
+            return False,[line_segment],[]
         sqrt_disc = math.sqrt(disc)
         sign_dy = 1
         if dy < 0:
             sign_dy = -1
+        # ix and iy are the coordinates of the intersection
+        # of the circle with the extended line segment.
         # translate the points back to original locations. 
         ix0 = (D*dy + sign_dy*dx*sqrt_disc)/dr_sqr + self.Q[0]
         ix1 = (D*dy - sign_dy*dx*sqrt_disc)/dr_sqr + self.Q[0]
         iy0 = (-D*dx + abs(dy)*sqrt_disc)/dr_sqr + self.Q[1]
         iy1 = (-D*dx - abs(dy)*sqrt_disc)/dr_sqr + self.Q[1]
-        # the intersection points are known but we need 
+        # the intersection points are now known but we need 
         # to order them.
         pointlist = []
         pointlist.append(line_segment.get_p1())
@@ -115,32 +119,51 @@ class Circle:
         # We now have 4 colinear points. 
         # Check the location of the original points of the line segment.
         retval = []
+        covered = None
         res = True
         if line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[1] :
             # The line segment would intersect with circle if extended
+            # but it is not covered by the circle. So the covered set is null.
             res = False
-	    retval.append(line_segment)
+            retval.append(line_segment)
         elif line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[3] :
             # In this case there are 2 segments remaining
-	    if not np.allclose(pointlist[0],pointlist[1]):
+            if not np.allclose(pointlist[0],pointlist[1]):
             	l1 = line.Line(pointlist[0],pointlist[1])
             	retval.append(l1)
-	    if not np.allclose(pointlist[2],pointlist[3]):
+            if not np.allclose(pointlist[2],pointlist[3]):
             	l2 = line.Line(pointlist[2],pointlist[3])
             	retval.append(l2)
+            covered = line.Line(pointlist[1],pointlist[2])
         elif line_segment.get_p1() == pointlist[0] :
-	    if not np.allclose(pointlist[0],pointlist[1]):
+            # there is one segment outside the circle.
+            # the rest of the line is inside the ecircle.
+            if not np.allclose(pointlist[0],pointlist[1]):
             	l1 = line.Line(pointlist[0],pointlist[1])
             	retval.append(l1)
+            covered = line.Line(pointlist[1],pointlist[2])
         elif line_segment.get_p2() == pointlist[3] :
-	    if not np.allclose(pointlist[2],pointlist[3]):
+            if not np.allclose(pointlist[2],pointlist[3]):
             	l2 = line.Line(pointlist[2],pointlist[3])
             	retval.append(l2)
-        return res,retval
+            covered = line.Line(pointlist[1],pointlist[2])
+        return res,retval,covered
 
 
+    def label_points(self,lines,points):
+        inside_points = []
+        # of the given points, find those that are inside the circle
+        for p in points:
+            if self.inside(p):          
+               inside_points.append(p)
+        
+        for p in inside_points:
+            l = Line(p,self.get_center())
+            
+               
+        
 
     def __hash__(self):
         return hash(str(self.Q) + str(self.r))

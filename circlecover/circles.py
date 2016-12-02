@@ -30,7 +30,7 @@ def covers_line(circles,l):
         top = circles[0]
         # check if it collides with the given line sebment.
         # lines contains the pieces caused by the collision.
-        t,lines =  top.collides(l)
+        t,lines,contained =  top.collides(l)
         # Construct a new list of circles by removing the topmost element of the list.
         newc = list(circles)
         newc.remove(top)
@@ -192,7 +192,7 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
     def intersects_lines(c,line_set):
         retval = []
         for line in line_set:
-            b,l = c.collides(line)
+            b,l,included = c.collides(line)
             retval = retval + l
         return retval
     
@@ -257,7 +257,4 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
 
     return min_area_cover_greedy_worker(possible_centers,split_line_segments,cover) 
                 
-
-
-            
 

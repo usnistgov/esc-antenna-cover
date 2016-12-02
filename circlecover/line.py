@@ -42,7 +42,7 @@ class Line:
     def split(self, segmentCount):
         """
         Split a line into multiple segments.
-	segmentCount : # of segments to split the line into.
+        segmentCount : # of segments to split the line into.
         """
         segment_list = []
         deltaY = float(self.points[1][1] - self.points[0][1])/float(segmentCount)
@@ -58,6 +58,62 @@ class Line:
         segment_list.append(Line(pi_0,pi_1))
         return segment_list
             
+
+    def intersection(self, line2):
+        """
+        Return True and the intersection point if this line
+        intersects with the given line segment line2
+        
+        Derived from:
+
+        http://stackoverflow.com/questions/20677795/how-do-i-compute-the-intersection-point-of-two-lines-in-python
+        """
+        xdiff = (self.points[0][0] - self.points[1][0], line2.points[0][0] - line2.points[1][0])
+        ydiff = (self.points[0][1] - self.points[1][1], line2.points[0][1] - line2.points[1][1])
+
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+            return False, None
+
+        d = (det(*tuple(self.points)), det(*tuple(line2.points)))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+
+        # Intersection point should be between the endpoints of the 
+        # two segments.
+        pointlist = []
+        pointlist.append(line2.get_p1())
+        pointlist.append([x,y])
+        pointlist.append(line2.get_p2())
+        # sort in the same order as the line segment:
+        if line2.get_sort_dimension() == 0:
+            pointlist.sort(key=lambda x : x[0])
+        else:
+            pointlist.sort(key=lambda x : x[1])
+
+        if pointlist[0] != line2.get_p1() or \
+            pointlist[2] != line2.get_p2():
+            return False,None
+            
+        pointlist = []
+        pointlist.append(self.get_p1())
+        pointlist.append([x,y])
+        pointlist.append(self.get_p2())
+        # sort in the same order as the line segment:
+        if self.get_sort_dimension() == 0:
+            pointlist.sort(key=lambda x : x[0])
+        else:
+            pointlist.sort(key=lambda x : x[1])
+
+        if pointlist[0] != self.get_p1() or \
+            pointlist[2] != self.get_p2():
+            return False,None
+
+        return True,[x,y]
+
 
     def length(self):
         x1 = self.points[0][0]
