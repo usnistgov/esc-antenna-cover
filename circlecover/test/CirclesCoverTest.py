@@ -19,12 +19,14 @@ def excess_area(circle_collection, covered_lines):
         total_area = total_area + circle_collection[i].compute_slice(covered_lines[i])
     return total_area
 
-def printCover(lines,cover,centers,output_file):
+def printCover(lines,cover,centers,covered_segments,output_file):
     X = []
     Y = []
     r = []
 
     f = open(output_file,"w")
+
+    f.write("close all\n")
 
     f.write("X = " + str(X) + ";\n")
     f.write("Y = " + str(Y) + ";\n")
@@ -49,6 +51,17 @@ def printCover(lines,cover,centers,output_file):
     f.write("viscircles (centers,r','Color','b');\n")
 
     # Draw the cover
+    colors = ['b','r','g','y','k']
+    for i in range(0,len(cover)):
+        center = cover[i].get_center()
+        radius = cover[i].get_radius()
+        color = colors[i%len(colors)]
+        f.write("viscircles (" + str(center) + "," + str(radius) + "," + "'Color'" + "," + "'" + str(color) + "');\n")
+        for li in covered_segments[i]:
+            p1 = [li.get_p1()[0], li.get_p2()[0]]
+            p2 = [li.get_p1()[1], li.get_p2()[1]]
+            f.write("line(" + str(p1) + "," + str(p2)   + ",'Color'" + "," + "'" + str(color) + "');\n")
+        
     X = []
     Y = []
     r = []
@@ -60,7 +73,8 @@ def printCover(lines,cover,centers,output_file):
     f.write("Y = " + str(Y) + ";\n")
     f.write("centers = [X',Y'];\n")
     f.write("r = " + str(r) + ";\n")
-    f.write("viscircles (centers,r','Color', 'r');\n")
+    #f.write("viscircles (centers,r','Color', 'r');\n")
+
     # Draw the centers of the  cover
     r = []
     for c in cover:
@@ -68,8 +82,11 @@ def printCover(lines,cover,centers,output_file):
     f.write("r = 0.5*" + str(r) + ";\n")
     f.write("viscircles (centers,r','Color','g');\n")
 
-    f.write("total_area = " + str(total_area(cover)))
+    earea = excess_area(cover,covered_segments)
+    f.write("total_area = " + str(total_area(cover)) + ";\n")
     print "total_area = " , str(total_area(cover))
+    print ("excess_area = "+ str(earea))
+    f.write( "excess_area = " +  str(earea) + ";\n")
     f.close()
     
 
@@ -160,6 +177,7 @@ class CirclesCoverTest(unittest.TestCase):
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         circ,covered_segments = circles.min_area_cover_greedy(centers,line_segments)
+        self.assertTrue(len(circ) == len(covered_segments))
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for line_segment in line_segments:
@@ -167,14 +185,22 @@ class CirclesCoverTest(unittest.TestCase):
             for c in circ:
                 if c.inside(line_segment.get_p1()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
             covered = False
             for c in circ:
                 if c.inside(line_segment.get_p2()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
 
-        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy.m")
+        # Check if the segments in the cover are distinct subsets.
+        for i in range(0,len(covered_segments)):
+            for k in range(i+1,len(covered_segments) -1 ):
+                for l in covered_segments[i]:
+                    for m in covered_segments[k]:
+                        self.assertFalse(l == m)
+                
+
+        printCover(line_segments,circ,savedCentrs,covered_segments,"testMinimumCircleSetCoverForLineSetGreedy.m")
 
 
     def testMinimumCircleSetCoverForLineSetGreedy2(self):
@@ -192,13 +218,13 @@ class CirclesCoverTest(unittest.TestCase):
             for c in circ:
                 if c.inside(line_segment.get_p1()):
                     covered = True
-            #self.assertTrue(covered)
+            self.assertTrue(covered)
             covered = False
             for c in circ:
                 if c.inside(line_segment.get_p2()):
                     covered = True
-            #self.assertTrue(covered)
-        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy2.m")
+            self.assertTrue(covered)
+        printCover(line_segments,circ,savedCentrs,segments,"testMinimumCircleSetCoverForLineSetGreedy2.m")
 
     def testMinimumCircleSetCoverForLineSetGreedy3(self):
         line_endpoints = [[20,80],[50,70]]
@@ -221,7 +247,7 @@ class CirclesCoverTest(unittest.TestCase):
                 if c.inside(line_segment.get_p2()):
                     covered = True
             self.assertTrue(covered)
-        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedy3.m")
+        printCover(line_segments,circ,savedCentrs,segments,"testMinimumCircleSetCoverForLineSetGreedy3.m")
 
     def testMinimumCircleSetCoverForLineSetGreedyRandom(self):
         line_endpoints = []
@@ -264,8 +290,15 @@ class CirclesCoverTest(unittest.TestCase):
             c = circ[i]
             lines = included[i]
             # check if each line segment is inside a circle.
-            for lineset in lines:
-                for k in lineset:
-                    self.assertTrue(c.encloses(k))
+            for k in lines:
+                self.assertTrue(c.encloses(k))
 
-        printCover(line_segments,circ,savedCentrs,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
+        # Check if the segments in the cover are distinct subsets.
+        for i in range(0,len(included)):
+            for k in range(i+1,len(included) -1 ):
+                for l in included[i]:
+                    for m in included[k]:
+                        self.assertFalse(l == m)
+
+        printCover(line_segments,circ,savedCentrs,included,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
+

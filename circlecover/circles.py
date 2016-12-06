@@ -7,9 +7,13 @@ import numpy as np
 import traceback
 import math
 import random
+from line import Line
 
 def covers_line(circles,l):
     """
+    We are given a set of circles and ask for the subset of the
+    circles that covers the line l.
+    
     return true if the set of circles covers the line.
   
     Parameters:
@@ -60,7 +64,6 @@ def covers_line(circles,l):
                 return False,None
             else:
                 return covers_line_worker(newc,right,newCover)
-    #pdb.set_trace()
     return covers_line_worker(circles,l,[])
 
 
@@ -79,6 +82,9 @@ def min_area_cover_for_line_brute_force(circles,l):
     This is a brutish brute force algorithm. It just tries to cover
     the lines using a set of circles by permuting the order of covering
     using different orders.
+
+    Here we are given a set of circles and want to find the minimum cost cover
+    for a line using brute force search.
     """
     permuted_circles = itertools.permutations(circles)
     currentMinCover = None
@@ -94,7 +100,8 @@ def min_area_cover_for_line_brute_force(circles,l):
 def min_area_cover_for_line_greedy(circles,l):
     """
     The minimum area cover of a line selected from a set of circles.
-    This is truly a brutish brute force algorithm
+
+    Sort the circles by radius and cover with the smallest radius first.
     """
     circles.sort(key=lambda x : x.get_radius)
     return covers_line(circles,l)
@@ -257,12 +264,18 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
 
         # now check how much of lines there is left behind.
         newlines,included_lines = intersects_lines(c,lines)
+
+        # DEBUG!!
+        #for q in included_lines:
+        #    l = Line([40,80],[50,70])
+        #    if q == l:
+        #        pdb.set_trace() 
         
         # gather the pieces that were included in this circle.
         for i in range(0,len(cover)):
             if max_min_center == cover[i].get_center():
                 old_segments = segments[i]
-                old_segments.append(included_lines)
+                old_segments = list(set(old_segments + included_lines))
                 segments[i] = old_segments
                 break
                 

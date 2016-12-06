@@ -1,4 +1,5 @@
 import math
+import numpy as np
 class Line:
     """
     A class for a line segment.
@@ -146,5 +147,13 @@ class Line:
         y2 = self.points[1][1]
         return math.sqrt((x1 - x2)**2 + (y1-y2)**2)
 
+    def __hash__(self):
+        return hash(str(self.points))
+
     def __repr__( self ):
         return str(self.points)
+
+    def __eq__(self,other):
+        if other == None: 
+            return False
+        return np.allclose(self.points[0],other.points[0],atol=.01) and np.allclose(self.points[1],other.points[1],atol=.01)

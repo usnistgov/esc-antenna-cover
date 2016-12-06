@@ -52,7 +52,7 @@ class Circle:
     def collides(self,line_segment):
         """
         Tests if a line_segment collides with this circle.
-        Return a pair (boolean,pieces).
+        Return a pair (boolean,pieces,covered).
         
         boolean : A boolean variable that indicates collision.
 
@@ -65,13 +65,17 @@ class Circle:
         - if one endpoint is inside and another is outside then boolean returns True.
 
         pieces - a list of line segments that lie OUTSIDE the circle after
-        intersection is computed. That is:
+        intersection is computed. pieces union covered is line_segment
+        segment. That is:
+    
+        covered - a line segment that is covered by the circle.
 
         - if the circle does not collide with the line segment, 
-          pieces contains a list consisting of one element which is the 
-          original line segment.
+          "pieces" contains a list consisting of one element which is the 
+          original line segment and "covered" is None.
         - if the circle includes both endpoints then pieces is an empty list.
-        - if the circle includes only one endpoint then pieces is a list of one line segment.
+        - if the circle includes only one endpoint then pieces is a list of one line segment 
+          and "covered" is the rest of the line..
 
         """
         
@@ -123,7 +127,7 @@ class Circle:
             pointlist.sort(key=lambda x : x[1])
         # We now have 4 colinear points. 
         # Check the location of the original points of the line segment.
-        retval = []
+        excluded = []
         # covered is a set of segments inside the circle.
         covered = None
         res = True
@@ -132,44 +136,55 @@ class Circle:
             # The line segment would intersect with circle if extended
             # but it is not covered by the circle. So the covered set is null.
             res = False
-            retval.append(line_segment)
+            excluded.append(line_segment)
+        elif line_segment.get_p1() == pointlist[2] and \
+            line_segment.get_p2() == pointlist[3] :
+            # The line segment would intersect with circle if extended
+            # but it is not covered by the circle. So the covered set is null.
+            res = False
+            excluded.append(line_segment)
         elif line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[3] :
             # In this case there are 2 segments remaining
             # one segment has been covered by the line.
             if not np.allclose(pointlist[0],pointlist[1]):
-            	l1 = line.Line(pointlist[0],pointlist[1])
-            	retval.append(l1)
+                l1 = line.Line(pointlist[0],pointlist[1])
+                excluded.append(l1)
             if not np.allclose(pointlist[2],pointlist[3]):
-            	l2 = line.Line(pointlist[2],pointlist[3])
-            	retval.append(l2)
-            covered = line.Line(pointlist[1],pointlist[2])
-        elif line_segment.get_p1() == pointlist[0] :
+                l2 = line.Line(pointlist[2],pointlist[3])
+                excluded.append(l2)
+            if True or not np.allclose(pointlist[1],pointlist[2]):
+                covered = line.Line(pointlist[1],pointlist[2])
+        elif line_segment.get_p1() == pointlist[0] and \
+             line_segment.get_p2() == pointlist[2] :
             # there is one segment outside the circle.
             # the rest of the line is inside the ecircle.
-            if not np.allclose(pointlist[0],pointlist[1]):
-            	l1 = line.Line(pointlist[0],pointlist[1])
-            	retval.append(l1)
-            covered = line.Line(pointlist[3],pointlist[3])
-        elif line_segment.get_p2() == pointlist[3] :
-            if not np.allclose(pointlist[2],pointlist[3]):
-            	l2 = line.Line(pointlist[2],pointlist[3])
-            	retval.append(l2)
-            covered = line.Line(pointlist[0],pointlist[1])
-        return res,retval,covered
+            l1 = line.Line(pointlist[0],pointlist[1])
+            excluded.append(l1)
+            if True or not np.allclose(pointlist[1],pointlist[2]):
+                covered = line.Line(pointlist[1],pointlist[2])
+        elif line_segment.get_p1() == pointlist[1] and \
+            line_segment.get_p2() == pointlist[3] :
+            l2 = line.Line(pointlist[2],pointlist[3])
+            excluded.append(l2)
+            if True or not np.allclose(pointlist[1],pointlist[2]):
+                covered = line.Line(pointlist[1],pointlist[2])
+
+        return res,excluded,covered
 
 
     
     def compute_slice(self,lines):
         """
         given a set of lines, compute the area that is inside the circle, using 
-        numerical integration. 
+        numerical integration. A slice is a an area enclosed between a circle and a
+        set of lines inside the circ.e
         
-        lines- a set of connected lines INSIDE the circels. lines are assumed not to double back
+        lines- a set of connected lines INSIDE the circles. Lines are assumed not to double back
                     on themselves. i.e. no switchback patterns.  Lines are all on one side of the center. 
         returns:
             - area included in the section between the lines and circumference of the circle 
-                (the excess area).
+                (the slice area). 
             
         """
         def pol2cart(theta, rho):
@@ -180,10 +195,13 @@ class Circle:
         translated_lines = []
         # Move the circle to the origin.
         for l in lines:
-            p1 = list(np.subtract(l.get_p1(), self.Q))
-            p2 = list(np.subtract(l.get_p2(), self.Q))
-            newline = line.Line(p1,p2)
-            translated_lines.append(newline)
+            try:
+                p1 = list(np.subtract(l.get_p1(), self.Q))
+                p2 = list(np.subtract(l.get_p2(), self.Q))
+                newline = line.Line(p1,p2)
+                translated_lines.append(newline)
+            except:
+                pdb.set_trace()
         
         inside_area = 0
         circle_area = self.area()

@@ -6,6 +6,7 @@ import line
 from line import Line
 import math
 import numpy as np
+import pdb
 
 def areaOfTriangle(l1,l2,l3):
     a = l1.length()
@@ -114,6 +115,12 @@ class CircleTest(unittest.TestCase):
         self.assertFalse(b)
         self.assertTrue(len(l) == 1)
         self.assertTrue(c is None)
+
+    def testLineIntersectsCircle3(self):
+        l2 = Line([50, 70], [58.78679656440357, 61.21320343559643])
+        self.circle = Circle(center = [30, 60], radius = 22.360679775)
+        b,l,c = self.circle.collides(l2)
+        print "testLineIntersectsCircle3 : ", c
 
 if __name__ == 'main':
     unittest.main()
