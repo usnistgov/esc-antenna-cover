@@ -57,6 +57,30 @@ class Line:
         pi_1 = self.points[1]
         segment_list.append(Line(pi_0,pi_1))
         return segment_list
+
+    
+    def angle(self,lineB):
+        """
+        return the angle between the given line and another line.
+
+        http://stackoverflow.com/questions/28260962/calculating-angles-between-line-segments-python-with-math-atan2
+
+        """
+        def dot(vA, vB):
+            return vA[0]*vB[0]+vA[1]*vB[1]
+        # Get nicer vector form
+        vA = [(self.points[0][0]-self.points[1][0]), (self.points[0][1]-self.points[1][1])]
+        vB = [(lineB.points[0][0]-lineB.points[1][0]), (lineB.points[0][1]-lineB.points[1][1])]
+        # Get dot prod
+        dot_prod = dot(vA, vB)
+        # Get magnitudes
+        magA = dot(vA, vA)**0.5
+        magB = dot(vB, vB)**0.5
+        # Get angle in radians 
+        angle = math.acos(dot_prod/(magB*magA))
+        return angle
+
+        
             
 
     def intersection(self, line2):
@@ -117,10 +141,10 @@ class Line:
 
     def length(self):
         x1 = self.points[0][0]
-        y1 = self.points[1][1]
+        y1 = self.points[0][1]
         x2 = self.points[1][0]
         y2 = self.points[1][1]
-        return sqrt((x1 - x2)**2 + (y1-y2)**2)
+        return math.sqrt((x1 - x2)**2 + (y1-y2)**2)
 
     def __repr__( self ):
         return str(self.points)

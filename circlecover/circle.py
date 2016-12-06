@@ -3,6 +3,8 @@ import numpy as np
 import math
 import line
 import pdb
+import random
+
 
 
 class Circle:
@@ -29,6 +31,9 @@ class Circle:
         except:
             pdb.set_trace()
             
+
+    def area(self):
+        return math.pi*self.r**2
 
     def get_center(self):
         return self.Q
@@ -120,7 +125,7 @@ class Circle:
         # Check the location of the original points of the line segment.
         retval = []
         # covered is a set of segments inside the circle.
-        covered = []
+        covered = None
         res = True
         if line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[1] :
@@ -131,6 +136,7 @@ class Circle:
         elif line_segment.get_p1() == pointlist[0] and \
             line_segment.get_p2() == pointlist[3] :
             # In this case there are 2 segments remaining
+            # one segment has been covered by the line.
             if not np.allclose(pointlist[0],pointlist[1]):
             	l1 = line.Line(pointlist[0],pointlist[1])
             	retval.append(l1)
@@ -153,17 +159,63 @@ class Circle:
         return res,retval,covered
 
 
-    def label_points(self,lines,points):
-        inside_points = []
-        # of the given points, find those that are inside the circle
-        for p in points:
-            if self.inside(p):          
-               inside_points.append(p)
+    
+    def compute_slice(self,lines):
+        """
+        given a set of lines, compute the area that is inside the circle, using 
+        numerical integration. 
         
-        for p in inside_points:
-            l = Line(p,self.get_center())
+        lines- a set of connected lines INSIDE the circels. lines are assumed not to double back
+                    on themselves. i.e. no switchback patterns.  Lines are all on one side of the center. 
+        returns:
+            - area included in the section between the lines and circumference of the circle 
+                (the excess area).
             
-               
+        """
+        def pol2cart(theta, rho):
+            x = rho * np.cos(theta)
+            y = rho * np.sin(theta)
+            return [x, y]
+
+        translated_lines = []
+        # Move the circle to the origin.
+        for l in lines:
+            p1 = list(np.subtract(l.get_p1(), self.Q))
+            p2 = list(np.subtract(l.get_p2(), self.Q))
+            newline = line.Line(p1,p2)
+            translated_lines.append(newline)
+        
+        inside_area = 0
+        circle_area = self.area()
+        nslices = 360
+        dtheta = 2*np.pi/nslices
+        # Go around the circle, computing intersections with the translated lines.
+        for i in range(0,nslices):
+            #ray is the ray inside the circle to compute intersection.
+            theta = dtheta*i
+            ray = line.Line([0,0],pol2cart(theta,self.get_radius()))
+            intersection = None
+            found = False
+            # dist is the square of the distance from the center
+            # to the line.
+            dist = self.get_radius()*self.get_radius()
+            for l in translated_lines:
+                b,p = l.intersection(ray)
+                if b :
+                    d = (p[0]**2 + p[1]**2)
+                    if d  < dist:
+                        found = True
+                        intersection = p
+                        dist = d
+            if not found:
+                # the ray did not intersect with a line.
+                slice_area = circle_area / float(nslices)
+            else:
+                # compute the area of the triangular wedge:
+                slice_area =  (np.pi*dist / float(nslices)) 
+            inside_area = inside_area + slice_area
+        excess_area = circle_area - inside_area
+        return excess_area
         
 
     def __hash__(self):

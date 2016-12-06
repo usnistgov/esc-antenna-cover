@@ -7,10 +7,16 @@ import line
 import pdb
 import random
 
-def cost(circle_collection):
+def total_area(circle_collection):
     total_area = 0
     for c in circle_collection:
         total_area = total_area + c.get_radius()**2
+    return total_area
+
+def excess_area(circle_collection, covered_lines):
+    total_area = 0
+    for i in range(0,len(circle_collection)):
+        total_area = total_area + circle_collection[i].compute_slice(covered_lines[i])
     return total_area
 
 def printCover(lines,cover,centers,output_file):
@@ -62,8 +68,8 @@ def printCover(lines,cover,centers,output_file):
     f.write("r = 0.5*" + str(r) + ";\n")
     f.write("viscircles (centers,r','Color','g');\n")
 
-    f.write("cost = " + str(cost(cover)))
-    print "cost = " , str(cost(cover))
+    f.write("total_area = " + str(total_area(cover)))
+    print "total_area = " , str(total_area(cover))
     f.close()
     
 
@@ -232,7 +238,7 @@ class CirclesCoverTest(unittest.TestCase):
             line_endpoints.append([p1,p2])
             p1 = start[0] + float(end[0] - start[0])/float(nsteps) * i
 
-        for i in range(1,50):
+        for i in range(1,150):
             p1 = random.randint(100,200)
             p2 = random.randint(90,100)
             centers.append([p1,p2])

@@ -15,8 +15,6 @@ class LineTest(unittest.TestCase):
         self.assertTrue(len(lines) == 2)
         s1 = lines[0].slope()
         s2 = lines[1].slope()
-        print lines
-        print s1,s2
         self.assertTrue(np.isclose(s1,s2))
 
     def testIntersects(self):
@@ -33,6 +31,14 @@ class LineTest(unittest.TestCase):
         self.assertTrue(res)
         self.assertTrue(vals is not None)
         self.assertTrue(vals == [4,3])
+
+    def testIntersects4(self):
+        line1 = Line([-1,-1], [1,1])
+        line2 = Line([-1,1], [1,-1])
+        res, vals = line1.intersection(line2)
+        self.assertTrue(res)
+        self.assertTrue(vals is not None)
+        self.assertTrue(vals == [0,0])
 
     def testIntersects3(self):
         line1 = Line([5,4], [3,2])
