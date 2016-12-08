@@ -78,7 +78,7 @@ class CircleTest(unittest.TestCase):
         self.assertTrue(b)
         self.assertTrue(len(l) == 2)
         self.assertTrue(c is not None)
-        sliceArea = self.circle.compute_slice([line_segment])
+        sliceArea = self.circle.compute_polar_slice([line_segment])
         self.assertTrue(sliceArea > 0)
         l1 = line.Line(self.circle.get_center(),c.get_p1())
         l2 = line.Line(self.circle.get_center(),c.get_p2())
@@ -95,6 +95,7 @@ class CircleTest(unittest.TestCase):
         self.assertTrue(np.allclose(segmentArea,sliceArea,rtol=1e-3))
         print "segmentArea ", segmentArea, " approximate sliceArea " , sliceArea
         
+        sliceArea = self.circle.compute_polar_slice([line_segment])
 
 
     def testLineIntersectsCircle2(self):
@@ -105,6 +106,8 @@ class CircleTest(unittest.TestCase):
         self.assertTrue(b)
         self.assertTrue(len(l) == 2)
         self.assertTrue(c is not None)
+        self.assertTrue(self.circle.on(c.get_p1()))
+        self.assertTrue(self.circle.on(c.get_p2()))
 
     def testLineMissesCircle(self):
         p1 = [20,80]

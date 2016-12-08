@@ -1,4 +1,4 @@
-import circle
+import circle as ccle
 import line
 import itertools
 import sys
@@ -8,6 +8,11 @@ import traceback
 import math
 import random
 from line import Line
+import logging
+
+logger = logging.getLogger("circlecover")
+
+
 
 def covers_line(circles,l):
     """
@@ -169,8 +174,114 @@ def min_area_cover_for_lines_greedy(circles,lines):
     return True, list(set(coverset))
         
 
+def compute_excess_area(circles, line_segments):
 
-def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
+    def isoutside(circle, segments,point):
+        """
+        return true if the point is outside the line segment (between the 
+        lines and the circumference of the circle.
+        """
+        l = line.Line(circle.get_center(),point)
+        intersection_count = 0
+        for line_segment in segments:
+            if  line_segment.intersects(l):
+                intersection_count = intersection_count + 1  
+        #odd number of intersections means point is in 
+        #excess area region.
+        return (intersection_count % 2) == 1
+
+    def get_line_segments_for_circle(circle,line_segments):
+        """
+        Compute the intersection of the circle with a set of line segments.
+        """
+        retval = []
+        for l in line_segments:
+            b,excluded,included = circle.collides(l)
+            if b:
+                retval.append(included)
+        return retval
+
+
+    def generate_grid(circles):
+        """
+        Generate a grid for numerical integration.
+        Returns a list of points enclosed in the circles.
+        """
+        centers = []
+        left_bottom = None
+        right_top = None
+        for c in circles:
+            if left_bottom == None:
+                left_bottom = [float(c.get_center()[0] - c.get_radius()), float(c.get_center()[1] - c.get_radius())]
+            else:
+                if c.get_center()[0] - c.get_radius() < left_bottom[0]:
+                    left_bottom[0] = c.get_center()[0] - c.get_radius()
+                if c.get_center()[1] - c.get_radius() < left_bottom[1]:
+                    left_bottom[1] = c.get_center()[1] - c.get_radius()
+                    
+            if right_top == None:
+                right_top = [float(c.get_center()[0] + c.get_radius()), float(c.get_center()[1] + c.get_radius())]
+            else:
+                if c.get_center()[0] + c.get_radius() > right_top[0]:
+                    right_top[0] = c.get_center()[0] + c.get_radius()
+                if c.get_center()[1] + c.get_radius() > right_top[1]:
+                    right_top[1] = c.get_center()[1] + c.get_radius()
+
+        # find the side of the grid. We insist that each dimension should be broken up into
+        # atleast 200 intervals (arbitrary).
+        x_distance = right_top[0] - left_bottom[0]
+        y_distance = right_top[1] - left_bottom[1]
+
+        if y_distance > x_distance:
+            grid_size = y_distance/200.0
+        else:
+            grid_size = x_distance/200.0
+
+
+        x_divisions = int(x_distance/grid_size)
+        y_divisions = int(y_distance/grid_size)
+
+        grid = []
+        for i in range (0,x_divisions):
+            for j in range (0,y_divisions):   
+                point = [left_bottom[0] + i*grid_size,left_bottom[1] + j*grid_size]
+                grid.append(point)
+
+        # Find the subset of the grid that is inside at least one circle.
+        newgrid = []
+        for point in grid:
+            found = False
+            for c in circles:
+                #if we find a circle that includes the point, 
+                # then incude in our integration side.
+                if not found and c.inside(point) :
+                    newgrid.append(point)
+                    found = True
+                    
+        # newgrid is a list of points within the circle set.
+        # we can integrate over this grid. grid_size is the dimension of one side
+        # of the integration square.
+        return newgrid,grid_size
+
+    grid,grid_size = generate_grid(circles)
+    grid_area = len(grid)*grid_size*grid_size
+
+    count = 0
+    for c in circles:
+        segments = get_line_segments_for_circle(c,line_segments)
+        filteredPoints = filter(lambda p: c.inside(p) and isoutside(c,segments,p),grid)
+        for p in filteredPoints:
+            grid.remove(p)
+        count = count + len(filteredPoints)
+    logger.debug("grid_area : " + str(len(grid)*grid_size*grid_size))
+    area = count * grid_size * grid_size
+    return area,grid_area
+        
+
+        
+
+
+def min_area_cover_greedy(possible_centers,line_segments,nsegments=1):
     """
     Greedy minimum area cover.
 
@@ -258,19 +369,13 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
                 break
 
         if not found:
-            c = circle.Circle(max_min_center,max_min_distance)
+            c = ccle.Circle(max_min_center,max_min_distance)
       	    cover.append(c)
             segments.append([])
 
         # now check how much of lines there is left behind.
         newlines,included_lines = intersects_lines(c,lines)
 
-        # DEBUG!!
-        #for q in included_lines:
-        #    l = Line([40,80],[50,70])
-        #    if q == l:
-        #        pdb.set_trace() 
-        
         # gather the pieces that were included in this circle.
         for i in range(0,len(cover)):
             if max_min_center == cover[i].get_center():
@@ -286,14 +391,12 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
         else:
             # If there are remaining line segments, iterate on the portion 
             # that is left.
-            #centers.remove(max_min_center)
+            centers.remove(max_min_center)
             return min_area_cover_greedy_worker(centers,newlines,cover,segments)
 
     cover = [] 
     included_segments = []
-
     split_line_segments = []
-
     for l in line_segments:
          segments = l.split(random.randint(1,nsegments))
          for s in segments:

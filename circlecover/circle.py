@@ -27,9 +27,16 @@ class Circle:
         try:
        	    x = point[0]
             y = point[1]
-       	    return (x- self.Q[0])**2 + (y - self.Q[1])**2 <= self.r**2 + self.r*.0005
+       	    return (x- self.Q[0])**2 + (y - self.Q[1])**2 <=  1.0005*self.r**2  
         except:
             pdb.set_trace()
+
+    def set_radius(self, newradius):
+         self.radius = newradius
+
+    def on(self,point):
+        dist = math.sqrt((point[0] - self.Q[0])**2 + (point[1] - self.Q[1])**2)
+        return np.allclose(dist,self.r,atol=.0001)
             
 
     def area(self):
@@ -174,17 +181,26 @@ class Circle:
 
 
     
-    def compute_slice(self,lines):
+    def compute_polar_slice(self,lines):
         """
-        given a set of lines, compute the area that is inside the circle, using 
-        numerical integration. A slice is a an area enclosed between a circle and a
-        set of lines inside the circ.e
+        Given a set of lines enclosed in this circle which form a slice, compute the area that is enclosed
+        between the lines and the circle using numerical integration. The lines are assumed to form 
+        a polar function i.e. a radial line from the center of the circle can only intersect with a single
+        line in the collection
         
+        Parameters:
+
         lines- a set of connected lines INSIDE the circles. Lines are assumed not to double back
                     on themselves. i.e. no switchback patterns.  Lines are all on one side of the center. 
-        returns:
+                    lines are assumed to be connected and form a POLAR function (i.e. a function of r,theta).
+                    Note that this method will NOT work (throws exception if the lines do not form a polar 
+                    function).
+        Returns:
             - area included in the section between the lines and circumference of the circle 
                 (the slice area). 
+
+        Raises:
+            - Exception if the lines do not form a polar function.
             
         """
         def pol2cart(theta, rho):
@@ -220,11 +236,14 @@ class Circle:
             for l in translated_lines:
                 b,p = l.intersection(ray)
                 if b :
+                    if found :
+                        raise Exception("Contour is not a polar function")
                     d = (p[0]**2 + p[1]**2)
                     if d  < dist:
                         found = True
                         intersection = p
                         dist = d
+
             if not found:
                 # the ray did not intersect with a line.
                 slice_area = circle_area / float(nslices)

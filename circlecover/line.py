@@ -40,6 +40,15 @@ class Line:
         else:
             return deltaY/deltaX
 
+    def isCollinear(self,point):
+	l1 = Line(self.points[0],point)
+	l2 = Line(self.points[1],point)
+	a = l1.length()
+    	b = l2.length()
+    	c = self.length()
+    	s = (a + b + c) /2
+	return s-a == 0 or s-b == 0 or s-c == 0
+
     def split(self, segmentCount):
         """
         Split a line into multiple segments.
@@ -62,14 +71,14 @@ class Line:
     
     def angle(self,lineB):
         """
-        return the angle between the given line and another line.
+        return the angle between the given line segment and another line segment.
 
         http://stackoverflow.com/questions/28260962/calculating-angles-between-line-segments-python-with-math-atan2
 
         """
         def dot(vA, vB):
             return vA[0]*vB[0]+vA[1]*vB[1]
-        # Get nicer vector form
+        # Dx, Dy representation for the two lines.
         vA = [(self.points[0][0]-self.points[1][0]), (self.points[0][1]-self.points[1][1])]
         vB = [(lineB.points[0][0]-lineB.points[1][0]), (lineB.points[0][1]-lineB.points[1][1])]
         # Get dot prod
@@ -79,22 +88,40 @@ class Line:
         magB = dot(vB, vB)**0.5
         # Get angle in radians 
         angle = math.acos(dot_prod/(magB*magA))
-        return angle
+        if angle > math.pi:
+            return 2*math.pi - angle
+        else: 
+            return angle
 
         
-            
+    def intersects(self,line2):
+	"""
+	Fast boolean check to test if given line segment
+	intersects another line segment.
+
+	http://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
+
+	"""
+        def ccw(A,B,C):
+            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+        # Return true if line segments AB and CD intersect
+        A = self.points[0] 
+        B = self.points[1]
+        C = line2.points[0]
+        D = line2.points[1]
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
     def intersection(self, line2):
         """
         Return True and the intersection point if this line
-        intersects with the given line segment line2
-        
+        intersects with the given line segment line2 
         Derived from:
 
         http://stackoverflow.com/questions/20677795/how-do-i-compute-the-intersection-point-of-two-lines-in-python
         """
         xdiff = (self.points[0][0] - self.points[1][0], line2.points[0][0] - line2.points[1][0])
-        ydiff = (self.points[0][1] - self.points[1][1], line2.points[0][1] - line2.points[1][1])
+        ydiff = (line2.points[0][1] - line2.points[1][1], self.points[0][1] - self.points[1][1])
 
         def det(a, b):
             return a[0] * b[1] - a[1] * b[0]
@@ -103,7 +130,7 @@ class Line:
         if div == 0:
             return False, None
 
-        d = (det(*tuple(self.points)), det(*tuple(line2.points)))
+        d = (det(*tuple(line2.points)), det(*tuple(self.points)))
         x = det(d, xdiff) / div
         y = det(d, ydiff) / div
 
@@ -123,6 +150,7 @@ class Line:
             pointlist[2] != line2.get_p2():
             return False,None
             
+	# check this condition for both lines
         pointlist = []
         pointlist.append(self.get_p1())
         pointlist.append([x,y])
