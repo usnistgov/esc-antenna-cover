@@ -1,39 +1,40 @@
 import math
 import numpy as np
-class Line:
+import pdb
+from shapely.geometry import LineString
+
+class Line(LineString):
     """
     A class for a line segment.
     """
-    def __init__(self,P1,P2):
+    def __init__(self,p1,p2):
         """
         Define a line segment.
         """
-        self.points =  []
-        self.points.append(P1)
-        self.points.append(P2)
-        # sort the line segment coordinates
-        if self.points[0][0] != self.points[1][0]:
-       	    self.points.sort(key=lambda x : x[0])
+        points = [p1,p2]
+        if p1[0] != p2[0]:
+            points.sort(key=lambda x : x[0])
             self.sort_dimension = 0
         else:
-            self.points.sort(key=lambda x : x[1])
+            points.sort(key=lambda x : x[1])
             self.sort_dimension = 1
-    
+        LineString.__init__(self,points)
+
     def get_sort_dimension(self):
         return self.sort_dimension
-
+    
     def get_p1(self):
-        return self.points[0]
+        return self.coords[0]
         
     def get_p2(self):
-        return self.points[1]
+        return self.coords[1]
 
     def slope(self):
         """
         Returns the slope or float('inf') if line is vertical.
         """
-        deltaY = float(self.points[0][1] - self.points[1][1])
-        deltaX = float(self.points[0][0] - self.points[1][0])
+        deltaY = float(self.coords[0][1] - self.coords[1][1])
+        deltaX = float(self.coords[0][0] - self.coords[1][0])
         # A very large slope if the line is vertical.
         if deltaX == 0:
             return float('inf')
@@ -41,13 +42,17 @@ class Line:
             return deltaY/deltaX
 
     def isCollinear(self,point):
-	l1 = Line(self.points[0],point)
-	l2 = Line(self.points[1],point)
-	a = l1.length()
-    	b = l2.length()
-    	c = self.length()
-    	s = (a + b + c) /2
-	return s-a == 0 or s-b == 0 or s-c == 0
+        """
+        return True if the given point is 
+        collinear with this line.
+        """
+        l1 = Line(self.coords[0],point)
+        l2 = Line(self.coords[1],point)
+        a = l1.length()
+        b = l2.length()
+        c = self.length()
+        s = (a + b + c) /2
+        return np.allclose( s-a,0) or np.allclose(s-b,0) or np.allclose(s-c, 0)
 
     def split(self, segmentCount):
         """
@@ -55,16 +60,16 @@ class Line:
         segmentCount : # of segments to split the line into.
         """
         segment_list = []
-        deltaY = float(self.points[1][1] - self.points[0][1])/float(segmentCount)
-        deltaX = float(self.points[1][0] - self.points[0][0])/float(segmentCount)
-        pi_0 = self.points[0]
+        deltaY = float(self.coords[1][1] - self.coords[0][1])/float(segmentCount)
+        deltaX = float(self.coords[1][0] - self.coords[0][0])/float(segmentCount)
+        pi_0 = self.coords[0]
         for i in range(1,segmentCount):
-            yi = self.points[0][1] + deltaY*i
-            xi = self.points[0][0] + deltaX*i
+            yi = self.coords[0][1] + deltaY*i
+            xi = self.coords[0][0] + deltaX*i
             pi_1 = [xi,yi]
             segment_list.append(Line(pi_0,pi_1))
             pi_0 = pi_1
-        pi_1 = self.points[1]
+        pi_1 = self.coords[1]
         segment_list.append(Line(pi_0,pi_1))
         return segment_list
 
@@ -79,8 +84,8 @@ class Line:
         def dot(vA, vB):
             return vA[0]*vB[0]+vA[1]*vB[1]
         # Dx, Dy representation for the two lines.
-        vA = [(self.points[0][0]-self.points[1][0]), (self.points[0][1]-self.points[1][1])]
-        vB = [(lineB.points[0][0]-lineB.points[1][0]), (lineB.points[0][1]-lineB.points[1][1])]
+        vA = [(self.coords[0][0]-self.coords[1][0]), (self.coords[0][1]-self.coords[1][1])]
+        vB = [(lineB.coords[0][0]-lineB.coords[1][0]), (lineB.coords[0][1]-lineB.coords[1][1])]
         # Get dot prod
         dot_prod = dot(vA, vB)
         # Get magnitudes
@@ -93,95 +98,35 @@ class Line:
         else: 
             return angle
 
-        
-    def intersects(self,line2):
-	"""
-	Fast boolean check to test if given line segment
-	intersects another line segment.
-
-	http://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
-
-	"""
-        def ccw(A,B,C):
-            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
-
-        # Return true if line segments AB and CD intersect
-        A = self.points[0] 
-        B = self.points[1]
-        C = line2.points[0]
-        D = line2.points[1]
-        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
     def intersection(self, line2):
         """
         Return True and the intersection point if this line
         intersects with the given line segment line2 
-        Derived from:
-
-        http://stackoverflow.com/questions/20677795/how-do-i-compute-the-intersection-point-of-two-lines-in-python
         """
-        xdiff = (self.points[0][0] - self.points[1][0], line2.points[0][0] - line2.points[1][0])
-        ydiff = (line2.points[0][1] - line2.points[1][1], self.points[0][1] - self.points[1][1])
-
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
-
-        div = det(xdiff, ydiff)
-        if div == 0:
-            return False, None
-
-        d = (det(*tuple(line2.points)), det(*tuple(self.points)))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
-
-        # Intersection point should be between the endpoints of the 
-        # two segments.
-        pointlist = []
-        pointlist.append(line2.get_p1())
-        pointlist.append([x,y])
-        pointlist.append(line2.get_p2())
-        # sort in the same order as the line segment:
-        if line2.get_sort_dimension() == 0:
-            pointlist.sort(key=lambda x : x[0])
-        else:
-            pointlist.sort(key=lambda x : x[1])
-
-        if pointlist[0] != line2.get_p1() or \
-            pointlist[2] != line2.get_p2():
+        if not self.intersects(line2):
             return False,None
+        x = LineString.intersection(self,line2)
+        return True,x.coords[0]
             
-	# check this condition for both lines
-        pointlist = []
-        pointlist.append(self.get_p1())
-        pointlist.append([x,y])
-        pointlist.append(self.get_p2())
-        # sort in the same order as the line segment:
-        if self.get_sort_dimension() == 0:
-            pointlist.sort(key=lambda x : x[0])
-        else:
-            pointlist.sort(key=lambda x : x[1])
 
-        if pointlist[0] != self.get_p1() or \
-            pointlist[2] != self.get_p2():
-            return False,None
-
-        return True,[x,y]
-
+    def get_coordinates():
+        return [ self.coords[0],self.coords[1] ]
 
     def length(self):
-        x1 = self.points[0][0]
-        y1 = self.points[0][1]
-        x2 = self.points[1][0]
-        y2 = self.points[1][1]
+        x1 = self.coords[0][0]
+        y1 = self.coords[0][1]
+        x2 = self.coords[1][0]
+        y2 = self.coords[1][1]
         return math.sqrt((x1 - x2)**2 + (y1-y2)**2)
 
     def __hash__(self):
-        return hash(str(self.points))
+        return hash(str(self.coords))
 
     def __repr__( self ):
-        return str(self.points)
+        return str(self.coords)
 
     def __eq__(self,other):
         if other == None: 
             return False
-        return np.allclose(self.points[0],other.points[0],atol=.01) and np.allclose(self.points[1],other.points[1],atol=.01)
+        return np.allclose(self.coords[0],other.coords[0],atol=.001) and np.allclose(self.coords[1],other.coords[1],atol=.001)
