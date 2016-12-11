@@ -167,6 +167,8 @@ def min_area_cover_for_lines_greedy(circles,lines):
                             # Pick the larger circle and add it to the
                             # cover set.
                             if c in cover:
+                                # Need to check here to ensure
+                                # c is stil in cover - otherwise remove fails.
                                 cover.remove(c)
                             coverset.remove(r)
                             coverset.append(c)
@@ -175,6 +177,10 @@ def min_area_cover_for_lines_greedy(circles,lines):
         
 
 def compute_excess_area(circles, line_segments):
+    """
+    compute the excess area - i.e. the area between the line collection
+    and the perephry of the circle using numerical integration.
+    """
 
     def isoutside(circle, segments,point):
         """
@@ -281,7 +287,7 @@ def compute_excess_area(circles, line_segments):
         
 
 
-def min_area_cover_greedy(possible_centers,line_segments,nsegments=1):
+def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
     """
     Greedy minimum area cover.
 
@@ -391,7 +397,7 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=1):
         else:
             # If there are remaining line segments, iterate on the portion 
             # that is left.
-            centers.remove(max_min_center)
+            #centers.remove(max_min_center)
             return min_area_cover_greedy_worker(centers,newlines,cover,segments)
 
     cover = [] 

@@ -78,7 +78,7 @@ class CircleTest(unittest.TestCase):
         self.assertTrue(b)
         self.assertTrue(len(l) == 2)
         self.assertTrue(c is not None)
-        sliceArea = self.circle.compute_polar_slice([line_segment])
+        sliceArea = self.circle.compute_polar_slice_area([line_segment])
         self.assertTrue(sliceArea > 0)
         l1 = line.Line(self.circle.get_center(),c.get_p1())
         l2 = line.Line(self.circle.get_center(),c.get_p2())

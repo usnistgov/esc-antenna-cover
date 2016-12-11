@@ -4,17 +4,22 @@ import math
 import line
 import pdb
 import random
+from shapely.geometry import Point
 
 
 
-class Circle:
+class Circle(Point):
     """
-    A circle class.
+    A circle class. This is an extension of the
+    shapely point class but we implement a few methods
+    that are specific to circles.
     """
     def __init__(self, center=None, radius=None):
         """
         Constructor.
         """
+        Point.__init__(self,center)
+        Point.buffer(self,radius)
         # Radius of the circle.
         self.r = radius
         # center of the rircle
@@ -33,8 +38,12 @@ class Circle:
 
     def set_radius(self, newradius):
          self.radius = newradius
+         Point.buffer(self,newradius)
 
     def on(self,point):
+        """
+        Return True if the point is on the circle.
+        """
         dist = math.sqrt((point[0] - self.Q[0])**2 + (point[1] - self.Q[1])**2)
         return np.allclose(dist,self.r,atol=.0001)
             
@@ -43,7 +52,7 @@ class Circle:
         return math.pi*self.r**2
 
     def get_center(self):
-        return self.Q
+        return self.coords[0]
 
     def get_radius(self):
         return self.r
@@ -181,7 +190,7 @@ class Circle:
 
 
     
-    def compute_polar_slice(self,lines):
+    def compute_polar_slice_area(self,lines):
         """
         Given a set of lines enclosed in this circle which form a slice, compute the area that is enclosed
         between the lines and the circle using numerical integration. The lines are assumed to form 
