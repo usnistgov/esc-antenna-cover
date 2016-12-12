@@ -83,7 +83,7 @@ def printCover(lines,cover,centers,covered_segments,output_file):
         center = cover[i].get_center()
         radius = cover[i].get_radius()
         color = colors[i%len(colors)]
-        f.write("viscircles (" + str(center) + "," + str(radius) + "," + "'Color'" + "," + "'" + str(color) + "');\n")
+        f.write("viscircles (" + str(list(center)) + "," + str(radius) + "," + "'Color'" + "," + "'" + str(color) + "');\n")
         for li in covered_segments[i]:
             p1 = [li.get_p1()[0], li.get_p2()[0]]
             p2 = [li.get_p1()[1], li.get_p2()[1]]
@@ -258,6 +258,7 @@ class CirclesCoverTest(unittest.TestCase):
         circ,segments = circles.min_area_cover_greedy(centers,line_segments)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
+        printCover(line_segments,circ,savedCentrs,segments,"testMinimumCircleSetCoverForLineSetGreedy3.m")
         for line_segment in line_segments:
             covered = False
             for c in circ:
@@ -269,7 +270,6 @@ class CirclesCoverTest(unittest.TestCase):
                 if c.inside(line_segment.get_p2()):
                     covered = True
             self.assertTrue(covered)
-        printCover(line_segments,circ,savedCentrs,segments,"testMinimumCircleSetCoverForLineSetGreedy3.m")
 
     def testCoverAreaNumericalIntegration(self):
         """
@@ -322,7 +322,8 @@ class CirclesCoverTest(unittest.TestCase):
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         savedCentrs = list(centers)
-        circ,included = circles.min_area_cover_greedy(centers,line_segments)
+        circ,included = circles.min_area_cover_greedy(centers,line_segments,min_center_distance = 20)
+        printCover(line_segments,circ,savedCentrs,included,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
         for line_segment in line_segments:
             covered = False
             for c in circ:
@@ -351,5 +352,4 @@ class CirclesCoverTest(unittest.TestCase):
                     for m in included[k]:
                         self.assertFalse(l == m)
 
-        printCover(line_segments,circ,savedCentrs,included,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
 

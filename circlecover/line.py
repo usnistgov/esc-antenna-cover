@@ -18,6 +18,7 @@ class Line(LineString):
         else:
             points.sort(key=lambda x : x[1])
             self.sort_dimension = 1
+        self.circles = []
         LineString.__init__(self,points)
 
     def get_sort_dimension(self):
@@ -98,6 +99,12 @@ class Line(LineString):
         else: 
             return angle
 
+    def add_enclosing(self,circ):
+        self.circles.append(circ)
+
+    def clear_enclosing(self):
+        self.circles = []
+        
 
     def intersection(self, line2):
         """
@@ -124,7 +131,7 @@ class Line(LineString):
         return hash(str(self.coords))
 
     def __repr__( self ):
-        return str(self.coords)
+        return "Line: " + str([[self.coords[0][0],self.coords[0][1]],[self.coords[1][0],self.coords[1][1]]]) + "\n"
 
     def __eq__(self,other):
         if other == None: 

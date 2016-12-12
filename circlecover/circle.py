@@ -25,19 +25,34 @@ class Circle(Point):
         # center of the rircle
         self.Q = center 
 
+    def distance_from_edge(self,line):
+        x1 = line.get_p1()[0]
+        y1 = line.get_p1()[1]
+        x2 = line.get_p2()[0]
+        y2 = line.get_p2()[1]
+        x,y = (x1+x2)/2 , (y1+y2)/2
+        d = math.sqrt((x- self.Q[0])**2 + (y - self.Q[1])**2 )
+        # Note that this can return a negative
+        return d - self.r
+
+    def overlaps(self,other):
+        x1 = self.get_center()[0]
+        y1 = self.get_center()[1]
+        x2 = other.get_center()[0]
+        y2 = other.get_center()[1]
+        return (x2 -x1) ** 2 + (y2-y1)**2 < (self.get_radius() + other.get_radius())**2
+        
+
     def inside(self, point):
         """
         Return true if point is inside a circle.
         """
-        try:
-       	    x = point[0]
-            y = point[1]
-       	    return (x- self.Q[0])**2 + (y - self.Q[1])**2 <=  1.0005*self.r**2  
-        except:
-            pdb.set_trace()
+        x = point[0]
+        y = point[1]
+        return (x- self.Q[0])**2 + (y - self.Q[1])**2 <=  1.0005*self.r**2  
 
     def set_radius(self, newradius):
-         self.radius = newradius
+         self.r = newradius
          Point.buffer(self,newradius)
 
     def on(self,point):
@@ -265,10 +280,10 @@ class Circle(Point):
         
 
     def __hash__(self):
-        return hash(str(self.Q) + str(self.r))
+        return hash(str(self.get_center()) + str(self.r))
 
     def __eq__(self,other):
-        return self.Q == other.Q and self.r == other.r
+        return self.get_center() == other.get_center() and self.r == other.r
 
     def __repr__(self):
         return '{ center : ' + str(self.Q) + ', radius: ' + str(self.r) + '}'

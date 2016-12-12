@@ -9,6 +9,7 @@ import math
 import random
 from line import Line
 import logging
+import copy
 
 logger = logging.getLogger("circlecover")
 
@@ -72,14 +73,6 @@ def covers_line(circles,l):
     return covers_line_worker(circles,l,[])
 
 
-def cost(circle_list):
-    """
-    return the cost of a circle (its area)
-    """
-    c = 0
-    for c in circle_list:
-        c = c.r**2
-    return c
 
 def min_area_cover_for_line_brute_force(circles,l):
     """
@@ -91,6 +84,15 @@ def min_area_cover_for_line_brute_force(circles,l):
     Here we are given a set of circles and want to find the minimum cost cover
     for a line using brute force search.
     """
+    def cost(circle_list):
+        """
+        return the cost of a circle (its area)
+        """
+        cst = 0
+        for c in circle_list:
+            cst = cst +  c.r**2
+        return cst
+
     permuted_circles = itertools.permutations(circles)
     currentMinCover = None
     currentMinCost =  sys.maxint
@@ -287,7 +289,7 @@ def compute_excess_area(circles, line_segments):
         
 
 
-def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
+def min_area_cover_greedy(possible_centers,line_segments, min_center_distance = 0, nsegments=10):
     """
     Greedy minimum area cover.
 
@@ -313,10 +315,19 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
 
     possible_centers : a list of points where the circles can be placed.
     line_segments: a list of Line which need to be optimally covered.
+    min_center_distance: distance constraint for minimum distance between centers (defaults to 0).
+    nsegments : # of segments to break up each line (defaullts to 10).
+    
 
     Returns:
 
-    return a list of circles that completely covers the given lines.
+    return a tuple consisting of two arrays
+
+    -  list of circles that completely covers the given lines.
+    -  a collection of line segments for the lines enclosed by the corresponding 
+       circles.
+
+    # TODO - remove the nsegments parameter
     
 
     """
@@ -336,8 +347,54 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
             if b:
                 included_set.append(included)
         return retval,included_set
+
+
+    def improve_solution(cover,lines):
+        """
+        Given set of circes and a segment cover, check if cover can be improved
+        by moving segments around between circles. We check the intersection areas
+        between circles and ask if we can improve the solution by moving the segments
+        in the intersection area to the smaller of the two circles.
+
+        """
+        print "Improve solution "
+        circles = [ccle.Circle(center=c.get_center(), radius=c.get_radius()) for c in cover]
+        covered = [ [line.Line(l.get_p1(),l.get_p2()) for l in li] for li in lines]
+        # Check if we can find a better fit.
+        # Move lines into smaller circles if possible.
+        for i in range(0,len(circles)-1):
+            for j in range(i+1,len(circles)):
+                # a set of indices for lines that are enclosed in a smaller dia circle.
+                try:
+                    inds = [k for (k,c) in enumerate(covered[i]) if circles[i].overlaps(circles[j]) and  circles[j].encloses(c)]
+                    if len(inds) != 0:
+                        # Enhance the covered set for the j'th circle.
+                        covered[j] = covered[j] + [covered[i][k] for k in inds]
+                        # resize the j'th circle.
+                        center = circles[j].get_center()
+                        # Enhance the covered set for the j'th circle.
+                        covered[j] = covered[j] + [covered[i][k] for k in inds]
+                        # resize the j'th circle.
+                        center = circles[j].get_center()
+                        radius = np.max([max(distance(center,l.get_p1()),distance(center,l.get_p2())) for l in covered[j]])
+                        circles[j].set_radius(radius)
+                        for index in sorted(inds, reverse=True):
+                            del covered[i][index]
+                        center = circles[i].get_center()
+                        if len(covered[i]) == 0:
+                            radius = 0
+                        else:
+                            radius = np.max([max(distance(center,l.get_p1()),distance(center,l.get_p2())) for l in covered[i]])
+                        circles[i].set_radius(radius)
+                except:
+                    pdb.set_trace()
+        inds = [k for (k,c) in enumerate(circles) if c.get_radius() == 0]
+        for i in sorted(inds, reverse=True):
+            del covered[i]
+            del circles[i]
+        return circles,covered
     
-    def min_area_cover_greedy_worker(centers,lines,cover,segments):
+    def min_area_cover_greedy_worker(centers,lines,cover,segments,disance_constraint):
 
         max_min_distance =  -1e6
         max_min_center = None
@@ -359,37 +416,18 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
                 max_min_distance = min_distance
                 max_min_center = mincenter
 
-        # At this point we have computed the max_min_distance over all lines and centers.
-        # add this circle to our cover list.
 
-        found = False
+        c = ccle.Circle(max_min_center,max_min_distance)
 
-        # Check if the circle already exists in our cover.
-        # If so, increase its radius if necessary
+        # now compute how much of lines there is left behind and how much is
+        # included in the cover.
 
-        for c in cover:
-            if c.get_center() == max_min_center:
-                newR = max(c.get_radius(),max_min_distance)
-                c.set_radius(newR)
-                found = True
-                break
-
-        if not found:
-            c = ccle.Circle(max_min_center,max_min_distance)
-      	    cover.append(c)
-            segments.append([])
-
-        # now check how much of lines there is left behind.
         newlines,included_lines = intersects_lines(c,lines)
 
-        # gather the pieces that were included in this circle.
-        for i in range(0,len(cover)):
-            if max_min_center == cover[i].get_center():
-                old_segments = segments[i]
-                old_segments = list(set(old_segments + included_lines))
-                segments[i] = old_segments
-                break
-                
+        cover.append(c)
+        segments.append(included_lines)
+    
+
 
         if len(newlines) == 0 :
             # no more line segments left to cover -- we are done.
@@ -397,16 +435,26 @@ def min_area_cover_greedy(possible_centers,line_segments,nsegments=10):
         else:
             # If there are remaining line segments, iterate on the portion 
             # that is left.
-            #centers.remove(max_min_center)
-            return min_area_cover_greedy_worker(centers,newlines,cover,segments)
+            centers.remove(max_min_center)
+            # Remove all the centers within our distance constraint so our constraint
+            # is satisfied.
+            centers_to_remove = [k for k,cntr in enumerate(centers) if distance(cntr,c.get_center()) < min_center_distance ]
+            for k in sorted(centers_to_remove, reverse=True):
+                del centers[k]
+            return min_area_cover_greedy_worker(centers,newlines,cover,segments,min_center_distance)
 
     cover = [] 
     included_segments = []
     split_line_segments = []
     for l in line_segments:
-         segments = l.split(random.randint(1,nsegments))
+         #segments = l.split(random.randint(1,nsegments))
+         segments = l.split(nsegments)
          for s in segments:
              split_line_segments.append(s)
 
 
-    return min_area_cover_greedy_worker(possible_centers,split_line_segments,cover,included_segments) 
+    cover,covered = min_area_cover_greedy_worker(possible_centers,split_line_segments,cover,included_segments,min_center_distance) 
+
+    cover,covered = improve_solution(cover,covered)
+    
+    return cover,covered
