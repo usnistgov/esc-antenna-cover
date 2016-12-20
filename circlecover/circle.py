@@ -5,10 +5,13 @@ import line
 import pdb
 import random
 from shapely.geometry import Point
+from shapely.geometry import LineString
+from shapely.geometry import MultiLineString
 
 
 
-class Circle(Point):
+
+class Circle:
     """
     A circle class. This is an extension of the
     shapely point class but we implement a few methods
@@ -18,21 +21,24 @@ class Circle(Point):
         """
         Constructor.
         """
-        Point.__init__(self,center)
-        Point.buffer(self,radius)
+        self.point = Point(center)
         # Radius of the circle.
         self.r = radius
         # center of the rircle
-        self.Q = center 
+        self.center = center 
 
-    def distance_from_edge(self,line):
+    def intersects_line(self, other):
+        return self.get_geometry().intersects(other)
+
+    def distance_from_boundary(self,line):
         x1 = line.get_p1()[0]
         y1 = line.get_p1()[1]
         x2 = line.get_p2()[0]
         y2 = line.get_p2()[1]
         x,y = (x1+x2)/2 , (y1+y2)/2
-        d = math.sqrt((x- self.Q[0])**2 + (y - self.Q[1])**2 )
+        d = math.sqrt((x- self.center[0])**2 + (y - self.center[1])**2 )
         # Note that this can return a negative
+        # negative means outside
         return d - self.r
 
     def overlaps(self,other):
@@ -49,17 +55,19 @@ class Circle(Point):
         """
         x = point[0]
         y = point[1]
-        return (x- self.Q[0])**2 + (y - self.Q[1])**2 <=  1.0005*self.r**2  
+        return (x- self.center[0])**2 + (y - self.center[1])**2 <=  1.0005*self.r**2  
 
     def set_radius(self, newradius):
          self.r = newradius
-         Point.buffer(self,newradius)
+
+    def get_geometry(self):
+        return self.point.buffer(self.r)
 
     def on(self,point):
         """
         Return True if the point is on the circle.
         """
-        dist = math.sqrt((point[0] - self.Q[0])**2 + (point[1] - self.Q[1])**2)
+        dist = math.sqrt((point[0] - self.get_center()[0])**2 + (point[1] - self.get_center()[1])**2)
         return np.allclose(dist,self.r,atol=.0001)
             
 
@@ -67,7 +75,7 @@ class Circle(Point):
         return math.pi*self.r**2
 
     def get_center(self):
-        return self.coords[0]
+        return self.center
 
     def get_radius(self):
         return self.r
@@ -76,9 +84,9 @@ class Circle(Point):
         """
         line_segement: A line segment that is defined by two endpoints P1 and P2
         """
-        P1 = line_segment.get_p1()
-        P2 = line_segment.get_p2()
-        return self.inside(P1) and self.inside(P2)
+        p1 = line_segment.get_p1()
+        p2 = line_segment.get_p2()
+        return self.inside(p1) and self.inside(p2)
 
     def collides(self,line_segment):
         """
@@ -117,10 +125,10 @@ class Circle(Point):
 
         # Translate the center of the circle to 0
         # The line segment moves as a result.
-        x1 = line_segment.get_p1()[0] - self.Q[0]
-        x2 = line_segment.get_p2()[0] - self.Q[0]
-        y1 = line_segment.get_p1()[1] - self.Q[1]
-        y2 = line_segment.get_p2()[1] - self.Q[1]
+        x1 = line_segment.get_p1()[0] - self.center[0]
+        x2 = line_segment.get_p2()[0] - self.center[0]
+        y1 = line_segment.get_p1()[1] - self.center[1]
+        y2 = line_segment.get_p2()[1] - self.center[1]
         dx = x2 - x1
         dy = y2 - y1
         dr_sqr = dx**2 + dy**2
@@ -140,10 +148,10 @@ class Circle(Point):
         # ix and iy are the coordinates of the intersection
         # of the circle with the extended line segment.
         # translate the points back to original locations. 
-        ix0 = (D*dy + sign_dy*dx*sqrt_disc)/dr_sqr + self.Q[0]
-        ix1 = (D*dy - sign_dy*dx*sqrt_disc)/dr_sqr + self.Q[0]
-        iy0 = (-D*dx + abs(dy)*sqrt_disc)/dr_sqr + self.Q[1]
-        iy1 = (-D*dx - abs(dy)*sqrt_disc)/dr_sqr + self.Q[1]
+        ix0 = (D*dy + sign_dy*dx*sqrt_disc)/dr_sqr + self.center[0]
+        ix1 = (D*dy - sign_dy*dx*sqrt_disc)/dr_sqr + self.center[0]
+        iy0 = (-D*dx + abs(dy)*sqrt_disc)/dr_sqr + self.center[1]
+        iy1 = (-D*dx - abs(dy)*sqrt_disc)/dr_sqr + self.center[1]
         # the intersection points are now known but we need 
         # to order them.
         pointlist = []
@@ -178,13 +186,13 @@ class Circle(Point):
             line_segment.get_p2() == pointlist[3] :
             # In this case there are 2 segments remaining
             # one segment has been covered by the line.
-            if not np.allclose(pointlist[0],pointlist[1]):
+            if not np.allclose(pointlist[0],pointlist[1],rtol=.005):
                 l1 = line.Line(pointlist[0],pointlist[1])
                 excluded.append(l1)
-            if not np.allclose(pointlist[2],pointlist[3]):
+            if not np.allclose(pointlist[2],pointlist[3],rtol=.005):
                 l2 = line.Line(pointlist[2],pointlist[3])
                 excluded.append(l2)
-            if True or not np.allclose(pointlist[1],pointlist[2]):
+            if True or not np.allclose(pointlist[1],pointlist[2],rtol=.005):
                 covered = line.Line(pointlist[1],pointlist[2])
         elif line_segment.get_p1() == pointlist[0] and \
              line_segment.get_p2() == pointlist[2] :
@@ -198,11 +206,94 @@ class Circle(Point):
             line_segment.get_p2() == pointlist[3] :
             l2 = line.Line(pointlist[2],pointlist[3])
             excluded.append(l2)
-            if True or not np.allclose(pointlist[1],pointlist[2]):
+            if True or not np.allclose(pointlist[1],pointlist[2],rtol=.005):
                 covered = line.Line(pointlist[1],pointlist[2])
 
         return res,excluded,covered
 
+
+    def intersects_line_strings(self,line_strings):
+        """
+        Use the Shapely package to return the intersection 
+        of this circle with the given line_string. 
+        """
+        def splitLineString(lineString):
+            res = []
+            coords = lineString.coords
+            p0 = coords[0]
+            for k in range(1,len(lineString.coords)):
+                p1 = coords[k]
+                res.append(line.Line(p0,p1))
+                p0 = p1
+            return res
+            
+        def defragmentLineString(lineString):
+            coords = lineString.coords
+            res = []
+            p0 = coords[0]
+            res.append(p0)
+            for k in range(1,len(lineString.coords)):
+                p1 = coords[k]
+                if not np.allclose(p0,p1,rtol=.005):
+                    res.append(p1)
+                p0 = p1
+            if len(res) > 1:
+               ls = LineString(res)
+            else:
+                ls = None
+            return ls
+
+        def defragment(multilineString):
+            """
+            Fix the roundoff error caused by shapely polygon 
+            approximation.
+            """
+            retval = []
+            for l in multilineString:
+                ls = defragmentLineString(l)
+                if ls is not None:
+                    retval.append(ls)
+            return MultiLineString(retval)  
+
+        excluded = line_strings.difference(self.get_geometry())
+        included = line_strings.difference(excluded)
+        if type(excluded) == LineString:
+            excluded = MultiLineString([excluded])
+
+        cover = []
+        if type(included) == LineString:
+            dls = defragmentLineString(included)
+            if dls is not None:
+                cover = splitLineString(dls)
+        else:
+            for ls in included:
+                dls = defragmentLineString(ls)
+                if dls is not None:
+                    cover = cover + splitLineString(ls)
+
+        return defragment(excluded),cover
+        
+
+    def intersects_lines(self,line_set):
+        """
+        compute intersection of line set with circle and return a lists
+        of segments that are excluded and included in the circles.
+        
+        Returns two lists :
+
+        - excluded_lines : A possibly empty list consisting of segments outside the circle
+        - included_lines: A possibly empty list consisting of segments inside the circle.
+        
+        
+        """
+        excluded_lines = []
+        included_set = []
+        for line in line_set:
+            b,l,included = self.collides(line)
+            excluded_lines = excluded_lines + l
+            if b:
+                included_set.append(included)
+        return excluded_lines,included_set
 
     
     def compute_polar_slice_area(self,lines):
@@ -236,8 +327,8 @@ class Circle(Point):
         # Move the circle to the origin.
         for l in lines:
             try:
-                p1 = list(np.subtract(l.get_p1(), self.Q))
-                p2 = list(np.subtract(l.get_p2(), self.Q))
+                p1 = list(np.subtract(l.get_p1(), self.center))
+                p2 = list(np.subtract(l.get_p2(), self.center))
                 newline = line.Line(p1,p2)
                 translated_lines.append(newline)
             except:
@@ -286,4 +377,4 @@ class Circle(Point):
         return self.get_center() == other.get_center() and self.r == other.r
 
     def __repr__(self):
-        return '{ center : ' + str(self.Q) + ', radius: ' + str(self.r) + '}'
+        return '{ center : ' + str(self.get_center()) + ', radius: ' + str(self.r) + '}'

@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pdb
 from shapely.geometry import LineString
+from shapely.geometry import MultiPoint
 
 class Line(LineString):
     """
@@ -20,6 +21,24 @@ class Line(LineString):
             self.sort_dimension = 1
         self.circles = []
         LineString.__init__(self,points)
+
+
+    def intersects(self,line2):
+	"""
+	Fast boolean check to test if given line segment
+	intersects another line segment.
+	http://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
+	"""
+        def ccw(A,B,C):
+            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+        # Return true if line segments AB and CD intersect
+        A = self.coords[0] 
+        B = self.coords[1]
+        C = line2.coords[0]
+        D = line2.coords[1]
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)    
+
 
     def get_sort_dimension(self):
         return self.sort_dimension
@@ -41,6 +60,24 @@ class Line(LineString):
             return float('inf')
         else:
             return deltaY/deltaX
+
+    def get_centroid(self):
+        return ((self.coords[0][0] + self.coords[1][0])/2 , (self.coords[0][1] + self.coords[1][1])/2)
+
+    def find_centroid_of_closest_lines(self,lines,count):
+        my_centroid = self.get_centroid()
+        # Sort the distances from my centroid to the line set
+        sorted_distances = sorted([(k,l,l.distance_to_centroid(my_centroid)) for (k,l) in enumerate(lines) if l != self ], key = lambda t: t[2])
+        if len(sorted_distances) > count :
+            s =  sorted_distances[0:count]
+        else:
+            s = sorted_distances
+        # Return my k nearest neighbors
+        points = [(l[1].get_p1(),l[1].get_p2()) for  l in s ]
+        mp = MultiPoint(points)
+        return mp.centroid.coords[0]
+        
+
 
     def isCollinear(self,point):
         """
@@ -120,12 +157,37 @@ class Line(LineString):
     def get_coordinates():
         return [ self.coords[0],self.coords[1] ]
 
+
     def length(self):
         x1 = self.coords[0][0]
         y1 = self.coords[0][1]
         x2 = self.coords[1][0]
         y2 = self.coords[1][1]
         return math.sqrt((x1 - x2)**2 + (y1-y2)**2)
+
+
+    def distance(self,point):
+        """
+        distance between a point and a line.
+        """
+        y1 = self.get_p1()[1]
+        y2 = self.get_p2()[1]
+        x1 = self.get_p1()[0]
+        x2 = self.get_p2()[1]
+        x0 = point[0]
+        y0 = point[1]
+        return abs((y2 -y1)*x0 - (x2 -x1)*y1 + x2*y1 -y2*x1)/ math.sqrt((y2-y1)**2 + (x2-x1)**2)
+
+    
+    def circumscribing_radius(self,point):
+        return math.sqrt(max( 
+                ((point[0]  - self.get_p1()[0])**2 + (point[1] - self.get_p1()[1])**2),
+                ((point[0]  - self.get_p2()[0])**2 + (point[1] - self.get_p2()[1])**2)))
+    
+    def distance_to_centroid(self,point):
+        mp = [(self.get_p1()[0] + self.get_p2()[0])/2.0,(self.get_p1()[1] + self.get_p2()[1])/2.0]
+        return math.sqrt((point[0] - mp[0])**2 + (point[1] - mp[1])**2)
+
 
     def __hash__(self):
         return hash(str(self.coords))
@@ -136,4 +198,4 @@ class Line(LineString):
     def __eq__(self,other):
         if other == None: 
             return False
-        return np.allclose(self.coords[0],other.coords[0],atol=.001) and np.allclose(self.coords[1],other.coords[1],atol=.001)
+        return np.allclose(self.get_p1(),other.get_p1(),atol=.001) and np.allclose(self.get_p2(),other.get_p2(),atol=.001)

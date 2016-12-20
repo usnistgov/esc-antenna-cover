@@ -94,8 +94,6 @@ class CircleTest(unittest.TestCase):
         # computation approximately.
         self.assertTrue(np.allclose(segmentArea,sliceArea,rtol=1e-3))
         print "segmentArea ", segmentArea, " approximate sliceArea " , sliceArea
-        
-        sliceArea = self.circle.compute_polar_slice([line_segment])
 
 
     def testLineIntersectsCircle2(self):
@@ -119,11 +117,11 @@ class CircleTest(unittest.TestCase):
         self.assertTrue(len(l) == 1)
         self.assertTrue(c is None)
 
-    def testLineIntersectsCircle3(self):
-        l2 = Line([50, 70], [58.78679656440357, 61.21320343559643])
-        self.circle = Circle(center = [30, 60], radius = 22.360679775)
-        b,l,c = self.circle.collides(l2)
-        print "testLineIntersectsCircle3 : ", c
+    #def testLineIntersectsCircle3(self):
+    #    l2 = Line([50, 70], [58.78679656440357, 61.21320343559643])
+    #    self.circle = Circle(center = [30, 60], radius = 22.360679775)
+    #    b,l,c = self.circle.collides(l2)
+    #    print "testLineIntersectsCircle3 : ", c
 
 if __name__ == 'main':
     unittest.main()
