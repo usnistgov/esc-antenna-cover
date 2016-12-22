@@ -342,6 +342,8 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
         cover.append(max_circle)
         points.append(max_cover)
 
+        # Remove the points from our cover from the interference
+        # contour. This leaves the others to be covered.
         for p in max_cover:
             interference_contour.remove(p)
 
@@ -351,21 +353,32 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
 
         for k in sorted(centers_to_remove, reverse=True):
             del centers[k]
+
     
 
         if len(interference_contour) == 0:
             return cover,points
         else:
+            if len(centers) == 0:
+                print "Cover not found increase radius"
+                return None,None
             return min_cover_greedy_with_fixed_discs_worker(centers,radius,interference_contour,cover,points)
         
     max_min_center, max_min_point, max_min_radius = find_tightest_enclosing_circle_for_points(possible_centers,interference_contour) 
-    cover = []
-    points = []
 
-    centers = copy.copy(possible_centers)
-    ifcontour = copy.copy(interference_contour)
-
-    cover,covered =  min_cover_greedy_with_fixed_discs_worker(centers,max_min_radius,ifcontour,cover,points)
+    coverNotFound = True
+    while coverNotFound:
+        cover = []
+        points = []
+        centers = copy.copy(possible_centers)
+        ifcontour = copy.copy(interference_contour)
+        cover,covered =  min_cover_greedy_with_fixed_discs_worker(centers,max_min_radius,ifcontour,cover,points)
+        if cover is None:
+            max_min_radius = 1.1 * max_min_radius
+            print "Retrying with radius = ", max_min_radius
+        else:
+            break
+    
     return cover,covered
     
 
@@ -383,17 +396,18 @@ def min_cover_greedy(possible_centers, interference_contour, min_center_distance
 
     """
 
-    def find_tightest_enclosing_circle(centers,lines):
+    def find_tightest_enclosing_circle(centers,cover,lines):
         max_min_distance =  -1e6
         max_min_center = None
-
+        centers_to_check = list(set(centers + [c.get_center() for c in cover]))
         for line in lines:
             min_distance = 1e6
             mincenter = None
             # find the cheapest cover for each line. 
-            for center in centers:
-                # The circle that can cover both endpoints of the line.
+            for center in centers_to_check:
+                # The circle radius that can cover both endpoints of the line.
                 dist = line.circumscribing_radius(center)
+                # find the smallest radius for this line
                 if dist < min_distance:
                     min_distance = dist
                     mincenter = center
@@ -408,12 +422,13 @@ def min_cover_greedy(possible_centers, interference_contour, min_center_distance
 
     def min_cover_greedy_worker(centers,lines,cover,segments):
 
-        # Compute the centers that are closest to the perpendicular bisector of each line.
-        max_min_center, max_min_radius = find_tightest_enclosing_circle(centers,lines) 
+        # Compute the centers the closest centers
+
+        max_min_center, max_min_radius = find_tightest_enclosing_circle(centers,cover,lines) 
 
         # Check if this circle is already in our cover.
     
-        found = [(i,c) for (i,c) in enumerate ([ k for k in cover if max_min_center[0] == k.get_center()])]
+        found = [(i,c) for (i,c) in enumerate ([ k for k in cover if max_min_center == k.get_center()])]
         
         if len(found) != 0:
             c = found[0][1]
@@ -436,15 +451,23 @@ def min_cover_greedy(possible_centers, interference_contour, min_center_distance
         else:
             # Remove all the centers within our distance constraint so our constraint
             # is satisfied.
-            centers_to_remove = [k for k,cntr in enumerate(centers) if distance(cntr,c.get_center()) < min_center_distance ]
-            for k in sorted(centers_to_remove, reverse=True):
-                del centers[k]
+            if max_min_center in centers:
+                centers.remove(max_min_center)
+
+            # eliminate all centers that are closer than the desired threshold
+            centers_to_remove = [cntr for cntr in centers if cntr != max_min_center and distance(cntr,max_min_center) < min_center_distance ]
+            for c in centers_to_remove:
+                centers.remove(c)
+            #for k in sorted(centers_to_remove, reverse=True):
+            #    del centers[k]
             return min_cover_greedy_worker(centers,newlines,cover,segments)
 
     cover = []
     included_segments = []
     line_segments = []
-    newcenters = copy.copy(possible_centers)
+    # Copy this because the list gets destroyed by the worker. We want the entries to be tuples.
+    newcenters = [tuple(center) for center in possible_centers]
+    # Construct a bunch of line segments corresponding to the interference contour
     p0 =  interference_contour[0]
     for i in range(1,len(interference_contour)):
         p1 = interference_contour[i]

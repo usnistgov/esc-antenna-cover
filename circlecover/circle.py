@@ -25,7 +25,8 @@ class Circle:
         # Radius of the circle.
         self.r = radius
         # center of the rircle
-        self.center = center 
+        # store this as a tuple.
+        self.center = tuple(center)
 
     def intersects_line(self, other):
         return self.get_geometry().intersects(other)

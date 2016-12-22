@@ -28,6 +28,9 @@ sh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 logger.addHandler(sh)
 
+FIXED_RADIUS = "FixedRadiusPointCover"
+VAR_RADIUS = "VariableRadiusLineCover"
+
 
 def total_area(circle_collection):
     total_area = 0
@@ -41,7 +44,12 @@ def slice_area(circle_collection, covered_lines):
         total_area = total_area + circle_collection[i].compute_slice(covered_lines[i])
     return total_area
 
-def printCover(line_endpoints,cover,centers,min_separation,covered_segments,output_file):
+def printCover(line_endpoints,cover,centers,min_separation,covered_segments,testName, algorithm):
+
+    if algorithm == FIXED_RADIUS:
+        output_file = testName + '_F.m'
+    else:
+        output_file = testName + '_V.m'
 
     p0 = line_endpoints[0]
     lines = []
@@ -154,7 +162,7 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,outp
 
     f.write("excess_area = " +  str(earea) + ";\n")
     f.write("min_separation = " + str(min_separation) + ";\n")
-    f.write("title({'GREEDY MAX MIN cover: minSeparation = " + str(min_separation)   + "','totalArea = " + str(total_area(cover)) + "','coverArea = " + str(carea) + "',' excessArea = " + str(earea) + "'});")
+    f.write("title({'ALGORITHM : " + algorithm  + "','minSeparation = " + str(min_separation)   + "','totalArea = " + str(total_area(cover)) + "','coverArea = " + str(carea) + "',' excessArea = " + str(earea) + "'});")
     f.close()
     
 
@@ -209,9 +217,8 @@ class CirclesCoverTest(unittest.TestCase):
     def testMinimumCircleSetCoverForLineSetGreedy4(self):
         line_endpoints = [[20,80],[50,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
         centers = [(10,70),(30,60),(50,55),(50,30),(60,20)]
-        savedCentrs = list(centers)
         circ,covered_segments = circles.min_cover_greedy(centers,line_endpoints,min_center_distance=30)
-        #circ,covered_segments = circles.min_excess_area_cover_greedy(centers,line_segments)
+        printCover(line_endpoints,circ,centers,0,covered_segments,"testMinimumCircleSetCoverForLineSetGreedy", VAR_RADIUS)
         self.assertTrue(len(circ) == len(covered_segments))
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
@@ -230,17 +237,13 @@ class CirclesCoverTest(unittest.TestCase):
                     for m in covered_segments[k]:
                         self.assertFalse(l == m)
 
-        printCover(line_segments,circ,savedCentrs,0,covered_segments,"testMinimumCircleSetCoverForLineSetGreedy.m")
 
     def testMinimumCircleSetCoverForLineSetGreedy(self):
         line_endpoints = [[20,80],[50,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
         centers = [(10,70),(30,60),(50,55),(50,30),(60,20)]
-        savedCentrs = list(centers)
-        print "testMinimumCircleSetCoverForLineSetGreedy"
+        testName =  "testMinimumCircleSetCoverForLineSetGreedy"
         circ,covered_segments = circles.min_cover_greedy(centers,line_endpoints)
-        printCover(line_endpoints,circ,savedCentrs,0,covered_segments,"testMinimumCircleSetCoverForLineSetGreedy.m")
-        #circ,covered_segments = circles.min_cover_greedy(centers,line_segments)
-        #printCover(line_segments,circ,savedCentrs,0,covered_segments,"testMinimumCircleSetCoverForLineSetGreedyHull.m")
+        printCover(line_endpoints,circ,centers,0,covered_segments,testName, VAR_RADIUS)
         self.assertTrue(len(circ) == len(covered_segments))
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
@@ -260,16 +263,11 @@ class CirclesCoverTest(unittest.TestCase):
                     for m in covered_segments[k]:
                         self.assertFalse(l == m)
 
-
-    def testMinimumCircleSetCoverForLineSetGreedy2(self):
-        line_endpoints = [[20,80],[50,70]]
-        centers = [[10,70],[40,60]]
-        savedCentrs = list(centers)
-        line_segments = []
-        circ,segments = circles.min_cover_greedy(centers,line_endpoints)
+        circ,covered_points = circles.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints)
+        printCover(line_endpoints,circ,centers,0,covered_segments,testName, FIXED_RADIUS)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
-
+    
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -278,20 +276,32 @@ class CirclesCoverTest(unittest.TestCase):
                     break
             self.assertTrue(flag)
 
+    def testMinimumCircleSetCoverForLineSetGreedy2(self):
+        line_endpoints = [[20,80],[50,70]]
+        centers = [[10,70],[40,60]]
+        savedCentrs = list(centers)
+        circ,segments = circles.min_cover_greedy(centers,line_endpoints)
+        # check that for every line segment, both endpoints are covered by
+        # at least one circle in our solution.
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
 
-        printCover(line_segments,circ,savedCentrs,0,segments,"testMinimumCircleSetCoverForLineSetGreedy2.m")
+        testName = "testMinimumCircleSetCoverForLineSetGreedy2"
+        printCover(line_endpoints,circ,savedCentrs,0,segments,testName, VAR_RADIUS)
 
     def testMinimumCircleSetCoverForLineSetGreedy3(self):
         line_endpoints = [[20,80],[50,70]]
         centers = [[10,70],[30,60]]
-        savedCentrs = list(centers)
-        line_segments = []
-        for i in range( len(line_endpoints) - 1 ):
-            line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         circ,segments = circles.min_area_cover_greedy(centers,line_endpoints)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
-        printCover(line_segments,circ,savedCentrs,0,segments,"testMinimumCircleSetCoverForLineSetGreedy3.m")
+        testName = "testMinimumCircleSetCoverForLineSetGreedy3"
+        printCover(line_endpoints,circ,centers,0,segments,testName, VAR_RADIUS)
 
         for point in line_endpoints:
             flag = False
@@ -320,13 +330,13 @@ class CirclesCoverTest(unittest.TestCase):
             p1 = random.randint(100,200)
             p2 = random.randint(90,100)
             centers.append((p1,p2))
+
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         circ,included = circles.min_cover_greedy(centers,line_endpoints,min_center_distance = 20)
-        printCover(line_endpoints,circ,centers,20,included,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
+        testName = "testMinimumCircleSetCoverForLineSetGreedyRandom"
+        printCover(line_endpoints,circ,centers,20,included,testName, VAR_RADIUS)
 
-        #circ,included = circles.min_area_cover_greedy(centers,line_endpoints,min_center_distance=20)
-        #printCover(line_endpoints,circ,centers,20,included,"testMinimumCircleSetCoverForLineSetGreedyRandom.m")
 
         for point in line_endpoints:
             flag = False
@@ -352,8 +362,18 @@ class CirclesCoverTest(unittest.TestCase):
                     for m in included[k]:
                         self.assertFalse(l == m)
 
+        circ,included = circles.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints,min_center_distance=20)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+        printCover(line_endpoints,circ,centers,20,[],testName, FIXED_RADIUS)
 
-    def testEscCover(self):
+
+    def testEscCoverVB(self):
         esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
         esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]
         ship_loc_x = [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]
@@ -371,10 +391,28 @@ class CirclesCoverTest(unittest.TestCase):
             line_endpoints.append(p)
 
         circ,included = circles.min_cover_greedy(centers,line_endpoints,min_center_distance = 60)
-        printCover(line_endpoints,circ,centers,60,included,"testEscCoverVaBeach.m")
+        testName = "testEscCoverVB"
+        printCover(line_endpoints,circ,centers,60,included,testName,VAR_RADIUS)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+
+        circ,included = circles.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints,min_center_distance = 60)
+        printCover(line_endpoints,circ,centers,60,[],testName,FIXED_RADIUS)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
 
 
-    def testEscCover1(self):
+    def testEscCoverSF(self):
         esc_loc_x = [-2300850,-2297160,-2284680,-2283390,-2284800,-2289540,-2287620,-2287740,-2287620,-2291760,-2289540,-2283720,-2279730,-2254320,-2252430,-2253120,-2256900,-2273160,-2273970,-2273910]
         esc_loc_y = [1986840,1977120,1966620,1957680,1947570,1937730,1926720,1917720,1907880,1897830,1887360,1876560,1867620,1852470,1843620,1833720,1824660,1817640,1807710,1797930]
         ship_loc_x =[-2414875,-2401190,-2405002,-2406089,-2407670,-2402495,-2402056,-2400759,-2390693,-2394883,-2393517,-2394351,-2393072,-2396507,-2393492,-2394127,-2399780,-2396297,-2387368,-2387021]
@@ -393,26 +431,24 @@ class CirclesCoverTest(unittest.TestCase):
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-
-        circ,included = circles.min_cover_greedy(centers,line_segments,min_center_distance = 60)
-        printCover(line_endpoints,circ,centers,60,included,"testEscCoverSanFrancisco.m")
-
-    def testEscCoverFixedDiscs(self):
-        esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
-        esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]
-        ship_loc_x = [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]
-        ship_loc_y = [1843636,1833617,1823583,1811442,1799284,1787072,1777140,1767066,1759078,1749183,1741311,1731358,1721401,1709309,1699318,1691518,1681523,1671542,1661589]
-
-        centers = []
-        for i in range(0,len(esc_loc_x)):
-            center = (esc_loc_x[i],esc_loc_y[i])
-            centers.append(center)
-
-        line_endpoints = []
-        
-        for i in range(0,len(ship_loc_x)):
-            p = (ship_loc_x[i],ship_loc_y[i])
-            line_endpoints.append(p)
-
+        testName = "testEscCoverSanFrancisco"
+        circ,included = circles.min_cover_greedy(centers,line_endpoints,min_center_distance = 60)
+        printCover(line_endpoints,circ,centers,60,included,testName,VAR_RADIUS)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
         circ,included = circles.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints,min_center_distance = 60)
-        printCover(line_endpoints,circ,centers,60,[],"testEscCoverVaBeachFixedDisk.m")
+        printCover(line_endpoints,circ,centers,60,[],testName,FIXED_RADIUS)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+
+
