@@ -184,7 +184,7 @@ def compute_excess_area(circles, line_segments, grid_divisions=200):
     compute the excess area - i.e. the area between the line collection
     and the perephry of the circle using numerical integration.
     
-    Returns the area and the grid size used for computation.
+    Returns a tuple -- the area and the grid size used for computation.
     The grid size is the length of each grid square.
     """
 
@@ -474,11 +474,99 @@ def min_cover_greedy(possible_centers, interference_contour, min_center_distance
         l = line.Line(p0, p1)
         line_segments.append(l)
         p0 = p1
+
+    cloned_line_segments = copy.copy(line_segments)
     
     cover,covered = min_cover_greedy_worker(newcenters,line_segments,cover,included_segments) 
+    
+    return improve2(cover,covered,cloned_line_segments)
 
-    return cover,covered
 
+
+def improve2(cover,covered,lines):
+    """
+    Possibly improve the solution using the following strategy.
+
+    For each circle in cover which is in the intersection of two other circles:
+        for each line segment contained by such circles:
+            Move the line segment to the closer circle of the two intersecting circles
+            neighboring this circle.
+        Remove the empty circle.
+   
+    
+    """
+
+    
+    centers  = [ c for c in  enumerate(cover)]
+    segments = copy.copy(covered)
+    newcover = [ccle.Circle(c.get_center(),c.get_radius()) for c in cover]
+    
+    neighbors = []
+
+    # Compile a list of circles which have two or more neighbors.
+    # i.e. it's center is inside two or more neighboring circles
+
+    for (index,circle) in centers:
+        # center[0] is the index and center[1] is the circle.
+        # Build a set of indices of neighboring circles.
+        neighborIndices = [ k  for (k,c) in centers  if k != index and c.inside(circle.get_center()) ]
+        if len(neighborIndices) >= 2:
+            neighbors.append((index,neighborIndices))
+
+    
+    if len(neighbors) == 0:
+        return cover,covered
+
+    excess_area,total_area = compute_excess_area(cover,lines)
+    # We now have a an enumeration of neighbor centers which we can try to improve.
+    # Each element of neighbors consists of an index for the circle and a set of indices
+    # for the neighbors of that circle.
+    for index,neighbor_indexes in neighbors:
+        # The included lines for this cricle
+        included = segments[index]
+        # The second element are the neighbors.
+        for l in included:
+            # c[1] contains the neighbors of c 
+            # Find the circle that can accomodate the lines owned by c[0]
+            min_dist = 1e6
+            min_neighbor = None
+            # neighb iterates through the neighbors of center
+            for ni in neighbor_indexes:
+                circ = cover[ni]
+                dist = l.circumscribing_radius(circ.get_center())
+                if dist < min_dist:
+                    min_dist = dist
+                    min_neighbor = ni
+            # Put the line into the cover set of the neighbor
+            circ = newcover[min_neighbor]
+            segments[min_neighbor].append(l)
+            dist = l.circumscribing_radius(circ.get_center())
+            # Remove the segment from the index
+            segments[index].remove(l)
+            if dist > circ.get_radius():
+                circ.set_radius(dist)
+
+    # Now prune the cover.
+
+    indices_to_prune = [k for k in range(0,len(segments)) if len(segments[k]) == 0]
+
+    for k in indices_to_prune:
+        del newcover[k]
+        del segments[k]
+
+    new_excess_area,new_total_area = compute_excess_area(newcover,lines)
+
+    print "old_exccess_area " , excess_area, " new_excess_area ", new_excess_area
+    
+    if new_excess_area < excess_area:
+        return newcover,segments
+    else:
+        return cover,covered
+
+        
+
+        
+        
     
 
 def improve1(cover,lines):
