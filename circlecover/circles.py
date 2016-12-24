@@ -556,9 +556,13 @@ def improve2(cover,covered,lines):
 
     new_excess_area,new_total_area = compute_excess_area(newcover,lines)
 
-    print "old_exccess_area " , excess_area, " new_excess_area ", new_excess_area
+    old_cover_area = sum([c.area() for c in cover])
+    new_cover_area = sum([c.area() for c in newcover])
+
+    print "old_exccess_area " , excess_area , " new_excess_area ", new_excess_area
+    print "old_cover_area " , old_cover_area , " new_cover_area ", new_cover_area
     
-    if new_excess_area < excess_area:
+    if new_cover_area < old_cover_area:
         return newcover,segments
     else:
         return cover,covered
