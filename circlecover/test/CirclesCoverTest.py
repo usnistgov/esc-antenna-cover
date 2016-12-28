@@ -59,15 +59,12 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
         l = Line(p0,p1)
         lines.append(l)
         p0 = p1
-        
 
     circ = cover[0].get_geometry()
     for i in range(1,len(cover)):
         circ = circ.union(cover[i].get_geometry())
-    
     for l in lines:
         circ = circ.union(l)
-    
     print "bounds = ", circ.bounds
 
     xmin = int(circ.bounds[0])
@@ -75,12 +72,9 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
     xmax = int(circ.bounds[2])
     ymax = int(circ.bounds[3])
 
-    
-        
     X = []
     Y = []
     r = []
-    
 
     f = open(output_file,"w")
 
@@ -133,7 +127,6 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
                 p1 = [li.get_p1()[0], li.get_p2()[0]]
                 p2 = [li.get_p1()[1], li.get_p2()[1]]
                 f.write("line(" + str(p1) + "," + str(p2)   + ",'Color'" + "," + "'" + str(color) + "');\n")
-        
     X = []
     Y = []
     r = []
@@ -164,7 +157,7 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
     f.write("min_separation = " + str(min_separation) + ";\n")
     f.write("title({'ALGORITHM : " + algorithm  + "','minSeparation = " + str(min_separation)   + "','totalArea = " + str(total_area(cover)) + "','coverArea = " + str(carea) + "',' excessArea = " + str(earea) + "'});")
     f.close()
-    
+
 
 class CirclesCoverTest(unittest.TestCase):
 
@@ -189,8 +182,8 @@ class CirclesCoverTest(unittest.TestCase):
 
     def testMinimumAreaCoverForLineSetBruteForce(self):
         lines = [line.Line([15,45],[38,44]),line.Line([38,44],[58,38]),line.Line([58,38],[66,49])]
-        cir = [ circle.Circle(center=[20,35], radius=13), 
-                    circle.Circle(center=[35,40], radius=13), 
+        cir = [ circle.Circle(center=[20,35], radius=13),
+                    circle.Circle(center=[35,40], radius=13),
                     circle.Circle(center=[45,55], radius=8),
                     circle.Circle(center=[65,43], radius = 9),
                     circle.Circle(center=[53,35], radius = 8) ,
@@ -212,7 +205,6 @@ class CirclesCoverTest(unittest.TestCase):
         print "solnY = ",soln_y
         print "solnR = ",soln_r
 
-    
 
     def testMinimumCircleSetCoverForLineSetGreedy4(self):
         line_endpoints = [[20,80],[50,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
@@ -247,7 +239,6 @@ class CirclesCoverTest(unittest.TestCase):
         self.assertTrue(len(circ) == len(covered_segments))
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
-    
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -267,7 +258,6 @@ class CirclesCoverTest(unittest.TestCase):
         printCover(line_endpoints,circ,centers,0,covered_segments,testName, FIXED_RADIUS)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
-    
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -275,6 +265,7 @@ class CirclesCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
+
 
     def testMinimumCircleSetCoverForLineSetGreedy2(self):
         line_endpoints = [[20,80],[50,70]]
@@ -385,7 +376,6 @@ class CirclesCoverTest(unittest.TestCase):
             centers.append(center)
 
         line_endpoints = []
-        
         for i in range(0,len(ship_loc_x)):
             p = (ship_loc_x[i],ship_loc_y[i])
             line_endpoints.append(p)
@@ -423,7 +413,6 @@ class CirclesCoverTest(unittest.TestCase):
             center = (esc_loc_x[i],esc_loc_y[i])
             centers.append(center)
         line_endpoints = []
-        
         for i in range(0,len(ship_loc_x)):
             p = (ship_loc_x[i],ship_loc_y[i])
             line_endpoints.append(p)

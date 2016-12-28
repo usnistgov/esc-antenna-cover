@@ -1,5 +1,4 @@
-Geometric Circle-cover
-=====================
+## Geometric Circle-cover
 
 Minimum area circle cover from a set of center points covering a set of lines. 
 
@@ -26,18 +25,41 @@ The python code in this project implements the following algorithm:
 
 
 
-Installing the code
-==================
-## Python
+## Installing the code
 
-python setup.py install
+Install Shapley Package 
 
-## Matlab
+For Linux:
+
+    pip install shapely
+
+
+For windows: Download the shapley installer for your architecture:
+
+    http://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
+
+Run pip install on the downloaded .whl file.
+
+Now run setup for the current package:
+
+    python setup.py install
+
+## USAGE
+### PYTHON
+
+### MATLAB
+
+Add the circlecover directory to your matlab path.
+
+See the documentation help min\_cover for usage.
+
+See the example in circlecover/test/CircleCoverTest.m
 
 
 
-Disclaimers
-===========
+
+
+## Disclaimers
 
 This software was developed by employees of the National Institute
 of Standards and Technology (NIST), an agency of the Federal
