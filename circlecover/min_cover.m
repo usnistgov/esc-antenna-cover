@@ -49,7 +49,7 @@ function  [centers_x,centers_y,radius] = min_cover(centers,ic, distance)
     for k = 1:length(ccles)
         ccle = ccles{k};
         centers_x(k) = ccle.center{1};
-        centers_y(k) = ccle.center(2);
+        centers_y(k) = ccle.center{2};
         radius(k) = ccle.get_radius();
     end
 end
