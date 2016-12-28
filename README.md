@@ -11,7 +11,10 @@ circles is minimized.
 
 Note that a line segment is covered if no part of it is OUTSIDE a circle.
 
-The python code in this project implements the following algorithm:
+The target application for this code is ESC sensor placement and sensitivity
+tuning for 3.5 GHZ spectrum sharing.
+
+The main python function in this project implements the following algorithm:
 
      1. Find the worst line, i.e. the line requiring the largest additional
      circle area for its best circle center option with the corresponding
@@ -24,8 +27,14 @@ The python code in this project implements the following algorithm:
      Iterate until no more line segments remain.
 
 
+A matlab wrapper for the main python functionality is included.
+
+
+
 
 ## Installing the code
+
+### Prerequisites
 
 Install Shapley Package 
 
@@ -40,9 +49,12 @@ For windows: Download the shapley installer for your architecture:
 
 Run pip install on the downloaded .whl file.
 
-Now run setup for the current package:
+### Installation 
+
+Now (for both Linux and Windows) run setup for the current package:
 
     python setup.py install
+
 
 ## USAGE
 ### Python
@@ -130,9 +142,7 @@ Acknowledgement
 
 	http://stackoverflow.com/questions/40748412/minimun-area-geometric-cover-for-a-set-of-line-segments
 
-
--- The problem of minimum excess area circle cover was proposed by Tim Hall. This was modified to minimum area cover
-   as an approximation.
+-- The problem of minimum excess area circle cover was proposed by Tim Hall. 
 
 -- Improvements to the algorithm were evolved and bad ideas pruned as a result of discussions with Anastase Nakassis at NIST.
 
@@ -144,5 +154,5 @@ Acknowledgement
 Future Work
 ==========
 
-Worst case sub-optimality analysis.
+TBD
 
