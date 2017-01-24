@@ -4,6 +4,7 @@ import math
 import line
 import pdb
 import random
+import json
 from shapely.geometry import Point
 from shapely.geometry import LineString
 from shapely.geometry import MultiLineString
@@ -217,6 +218,8 @@ class Circle:
         """
         Use the Shapely package to return the intersection 
         of this circle with the given line_string. 
+        The shapely package approximates a circle using a
+        64 point polygon. 
         """
         def splitLineString(lineString):
             res = []
@@ -378,4 +381,7 @@ class Circle:
         return self.get_center() == other.get_center() and self.r == other.r
 
     def __repr__(self):
-        return '{ center : ' + str(self.get_center()) + ', radius: ' + str(self.r) + '}'
+        r = {}
+        r['center'] = list(self.get_center())
+        r['radius'] = self.r
+        return json.dumps(r)
