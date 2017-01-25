@@ -49,8 +49,9 @@ setup(
   author_email = 'mranga@nist.gov',
   url = 'https://github.com/usnistgov/circle-cover',
   packages = ['circlecover', 'circlecover.test'],
-  package_dir={'cieclecover':'cieclecover'},
-  long_description=open('README.rst').read(),
+  package_dir={'circlecover':'circlecover'},
+  package_data={'circlecover':['min_cover.m']},
+  long_description='see https://github.com/usnistgov/circle-cover',
   license = 'Public Domain',
   classifiers = [
     'Development Status :: Alpha ',
