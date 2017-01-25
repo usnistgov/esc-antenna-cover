@@ -3,6 +3,7 @@ import numpy as np
 import pdb
 from shapely.geometry import LineString
 from shapely.geometry import MultiPoint
+import json
 
 class Line(LineString):
     """
@@ -154,7 +155,7 @@ class Line(LineString):
         return True,x.coords[0]
             
 
-    def get_coordinates():
+    def get_coordinates(self):
         return [ self.coords[0],self.coords[1] ]
 
 
@@ -192,8 +193,9 @@ class Line(LineString):
     def __hash__(self):
         return hash(str(self.coords))
 
+
     def __repr__( self ):
-        return "Line: " + str([[self.coords[0][0],self.coords[0][1]],[self.coords[1][0],self.coords[1][1]]]) + "\n"
+        return "Line : " + json.dumps([[self.coords[0][0],self.coords[0][1]],[self.coords[1][0],self.coords[1][1]]]) 
 
     def __eq__(self,other):
         if other == None: 

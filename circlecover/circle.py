@@ -385,3 +385,9 @@ class Circle:
         r['center'] = list(self.get_center())
         r['radius'] = self.r
         return json.dumps(r)
+
+    def to_map(self):
+        r = {}
+        r['center'] = list(self.get_center())
+        r['radius'] = self.r
+        return r
