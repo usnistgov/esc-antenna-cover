@@ -165,6 +165,8 @@ def show_results(fileName):
     
     plt.suptitle(title)
 
+    plt.gcf().canvas.set_window_title(result["testName"] +  "_" + result["algorithm"])
+
     plt.show()
 
     
