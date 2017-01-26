@@ -178,7 +178,6 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         max_min_center, max_min_radius = find_tightest_enclosing_circle_for_points(centers,interference_set) 
         max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
         cover.append(max_circle)
-        print "max_circle ", max_circle
         max_cover = find_cover(max_circle,interference_set)
         points.append(max_cover)
         # Remove the points from our cover from the interference
