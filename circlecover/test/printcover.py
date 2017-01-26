@@ -10,6 +10,7 @@ import pdb
 import argparse
 import json
 import circlecover
+import os
 from line import Line
 
 
@@ -17,6 +18,7 @@ from line import Line
 
 FIXED_RADIUS = "FixedRadiusPointCover"
 VAR_RADIUS = "VariableRadiusLineCover"
+AREA_COVER = "AreaCover"
 BLUE = '#6699cc'
 GRAY = '#999999'
 DARKGRAY = '#333333'
@@ -153,17 +155,27 @@ def printCoverForMatlab(line_endpoints,cover,centers,min_separation,covered_segm
 
     f.write("excess_area = " +  str(earea) + ";\n")
     f.write("min_separation = " + str(min_separation) + ";\n")
-    f.write("title({'ALGORITHM : " + algorithm  + "','minSeparation = " + str(min_separation)   + "','totalArea = " + str(total_area(cover)) + "','coverArea = " + str(carea) + "',' excessArea = " + str(earea) + "'});")
+    f.write("title({'ALGORITHM : " + algorithm  + "','minSeparation = " + str(min_separation)   +
+        "','totalArea = " + str(total_area(cover)) + "','coverArea = " + str(carea) +
+        "',' excessArea = " + str(earea) + "'});")
     f.close()
 
 
 def printCover(line_endpoints,cover,centers,min_separation,covered_segments,testName, algorithm):
+    """
+    Store the test results in a json formatted file for later viewing..
+    """
     if algorithm == FIXED_RADIUS:
         output_file = testName + '_F.txt'
-    else:
+    elif algorithm == VAR_RADIUS:
         output_file = testName + '_V.txt'
+    else:
+        output_file = testName + '_A.txt'
 
-    f = open(output_file,"w")
+    if not os.path.exists("test-results") :
+        os.mkdir("test-results")
+
+    f = open("test-results/" + output_file,"w")
     result = {}
     result["line_endpoints"] = line_endpoints
     lines = []
@@ -202,6 +214,10 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
 
 
 def show_results(fileName):
+    """
+    Read the json formatted file previously stored and display it.
+    This is to visualize the test results.
+    """
     def total_area(circle_collection):
         total_area = 0
         for c in circle_collection:
@@ -213,6 +229,7 @@ def show_results(fileName):
 
     def plot_point(ax,point,point_color):
         ax.plot(point[0],point[1],'o',color=point_color,zorder=1)
+
 
     f = open(fileName)
     result = json.load(f)
