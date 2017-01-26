@@ -211,6 +211,9 @@ def show_results(fileName):
         x, y = ob.xy
         ax.plot(x, y, 'o', color=point_color, zorder=1)
 
+    def plot_point(ax,point,point_color):
+        ax.plot(point[0],point[1],'o',color=point_color,zorder=1)
+
     f = open(fileName)
     result = json.load(f)
     plt.figure(dpi=90)
@@ -231,11 +234,11 @@ def show_results(fileName):
         cover.append(circle.Circle(center=c['center'],radius=c['radius']))
         cover_centers.append(c['center'])
 
-    cover_centers_linestring = LineString(cover_centers)
-
-    plot_coords(ax,cover_centers_linestring,BLACK)
-    
-        
+    if len(cover_centers) > 1:
+        cover_centers_linestring = LineString(cover_centers)
+        plot_coords(ax,cover_centers_linestring,BLACK)
+    else:
+        plot_point(ax,cover_centers[0],BLACK)
 
     circ = cover[0].get_geometry()
     for i in range(1,len(cover)):

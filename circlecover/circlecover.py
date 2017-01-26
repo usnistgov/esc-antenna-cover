@@ -186,7 +186,10 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         for p in max_cover:
             interference_set.remove(p)
         # Remove the center that we used to construct the circle.
-        centers.remove(max_circle.get_center())
+        try:
+            centers.remove(max_circle.get_center())
+        except:
+            pdb.set_trace()
         # Of the remaining centers, remove those that violate our distance criterion.
         centers_to_remove = [k for k,cntr in enumerate(centers) if distance(cntr,max_circle.get_center()) < min_center_distance ]
         for k in sorted(centers_to_remove, reverse=True):
