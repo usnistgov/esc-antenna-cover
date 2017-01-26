@@ -231,7 +231,7 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         interference_set.append(point)
 
     # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
-    ndivs = 20
+    ndivs = 60
     deltaX = (xmax - xmin)/ndivs
     deltaY = (ymax - ymin)/ndivs
     # We add additional points inside the contour to make sure that our area

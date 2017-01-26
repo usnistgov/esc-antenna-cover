@@ -43,7 +43,7 @@ def total_area(circle_collection):
 
 
 
-class CirclesCoverTest(unittest.TestCase):
+class CircleCoverTest(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -290,3 +290,22 @@ class CirclesCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
+
+    def testAreaCoverForEstuary(self):
+        """
+        Test for a deep estuary.
+        """
+        interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
+        centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
+        circ,included = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance=0)
+        testName = "Estuary"
+        printcover.printCover(interference_contour,circ,centers,0,[],testName,AREA_COVER)
+        for point in interference_contour:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+
+        
