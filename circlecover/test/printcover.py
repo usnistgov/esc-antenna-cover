@@ -132,17 +132,22 @@ def show_results(fileName):
         cover.append(circle.Circle(center=c['center'],radius=c['radius']))
         cover_centers.append(c['center'])
 
+    circ = cover[0].get_geometry()
+    circ = circ.union(interference_linestring)
+    circ = circ.union(centers_linestring)
+
     if len(cover_centers) > 1:
         cover_centers_linestring = LineString(cover_centers)
         plot_coords(ax,cover_centers_linestring,BLACK)
     else:
         plot_point(ax,cover_centers[0],BLACK)
+        circ = circ.union(Point(cover_centers[0]))
 
-    circ = cover[0].get_geometry()
+    print "Bounds = ", str(circ.bounds)
+
     for i in range(1,len(cover)):
         circ = circ.union(cover[i].get_geometry())
     
-    circ = circ.union(interference_linestring)
 
     xmin = float(circ.bounds[0])
     ymin = float(circ.bounds[1])

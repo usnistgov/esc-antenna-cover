@@ -308,4 +308,12 @@ class CircleCoverTest(unittest.TestCase):
                     break
             self.assertTrue(flag)
 
-        
+        circ,included = circlecover.min_point_cover_greedy_with_fixed_discs(centers,interference_contour,min_center_distance=0)
+        printcover.printCover(interference_contour,circ,centers,0,[],testName,FIXED_RADIUS)
+        for point in interference_contour:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
