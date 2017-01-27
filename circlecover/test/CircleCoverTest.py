@@ -11,8 +11,9 @@ import logging
 import numpy as np
 from line import Line
 import printcover
-
+from shapely.geometry import Polygon
 from shapely.geometry import Point
+from shapely.geometry import LineString
 
 # set up logging to file - see previous section for more details
 logging.basicConfig(level=logging.DEBUG,
@@ -124,7 +125,6 @@ class CircleCoverTest(unittest.TestCase):
 
     def testMinimumCircleSetCoverForLineSetGreedyRandom(self):
         line_endpoints = []
-        centers = []
         line_segments = []
         random.seed(0)
         start = [100,100]
@@ -134,21 +134,25 @@ class CircleCoverTest(unittest.TestCase):
         nsteps = 200
         for i in range(1,nsteps):
             p2 = random.randint(start[1],end[1])
-            line_endpoints.append([p1,p2])
+            line_endpoints.append((p1,p2))
             p1 = start[0] + float(end[0] - start[0])/float(nsteps) * i
 
-        for i in range(1,150):
-            p1 = random.randint(100,200)
+        lineString = LineString(line_endpoints)
+        centers = []
+        x_coords= [ random.randint(100,200) for i in range(1,150)]
+        sorted_xcoords = sorted(x_coords)
+
+        for p1 in sorted_xcoords:
             p2 = random.randint(90,100)
             centers.append((p1,p2))
 
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         circ,included = circlecover.min_line_cover_greedy(centers,line_endpoints,min_center_distance = 20)
-        testName = "testMinimumCircleSetCoverForLineSetGreedyRandom"
+        testName = "LineCoverGreedyRandom"
         printcover.printCover(line_endpoints,circ,centers,20,included,testName, VAR_RADIUS)
 
-
+       
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -157,14 +161,12 @@ class CircleCoverTest(unittest.TestCase):
                     break
             self.assertTrue(flag)
 
-        # The returned fragments are enclosed in the 
-        # corresponding circles. Lets check for that.
-        for i in range(0,len(circ)):
-            c = circ[i]
-            lines = included[i]
-            # check if each line segment is inside a circle.
-            for k in lines:
-                self.assertTrue(c.encloses(k))
+        u = Polygon()
+
+        for c in circ:
+            u  = u.union(c.get_geometry())
+
+        self.assertTrue(u.buffer(1).contains(lineString))
 
         # Check if the segments in the cover are distinct subsets.
         for i in range(0,len(included)):
@@ -185,7 +187,7 @@ class CircleCoverTest(unittest.TestCase):
 
 
     def testEscCoverVB(self):
-        esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
+        esc_loc_x = [1771380,1769310,1769790,1768380,1767390,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
         esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]
         ship_loc_x = [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]
         ship_loc_y = [1843636,1833617,1823583,1811442,1799284,1787072,1777140,1767066,1759078,1749183,1741311,1731358,1721401,1709309,1699318,1691518,1681523,1671542,1661589]
@@ -201,7 +203,7 @@ class CircleCoverTest(unittest.TestCase):
             line_endpoints.append(p)
 
         circ,included = circlecover.min_line_cover_greedy(centers,line_endpoints,min_center_distance = 60)
-        testName = "testEscCoverVB"
+        testName = "VirginiaBeach"
         printcover.printCover(line_endpoints,circ,centers,60,included,testName,VAR_RADIUS)
         for point in line_endpoints:
             flag = False
@@ -213,6 +215,16 @@ class CircleCoverTest(unittest.TestCase):
 
         circ,included = circlecover.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints,min_center_distance = 60)
         printcover.printCover(line_endpoints,circ,centers,60,[],testName,FIXED_RADIUS)
+        for point in line_endpoints:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+
+        circ,included = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
+        printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -240,7 +252,7 @@ class CircleCoverTest(unittest.TestCase):
         line_segments = []
         for i in range( len(line_endpoints) - 1 ):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
-        testName = "testEscCoverSanFrancisco"
+        testName = "SanFrancisco"
         circ,included = circlecover.min_line_cover_greedy(centers,line_endpoints,min_center_distance = 60)
         printcover.printCover(line_endpoints,circ,centers,60,included,testName,VAR_RADIUS)
         for point in line_endpoints:
@@ -259,29 +271,7 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
-
-
-    def testEscCoverVB1(self):
-        """
-        Test of Virgina Beach data with area cover.
-        """
-        esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
-        esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]
-        ship_loc_x = [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]
-        ship_loc_y = [1843636,1833617,1823583,1811442,1799284,1787072,1777140,1767066,1759078,1749183,1741311,1731358,1721401,1709309,1699318,1691518,1681523,1671542,1661589]
-
-        centers = []
-        for i in range(0,len(esc_loc_x)):
-            center = (esc_loc_x[i],esc_loc_y[i])
-            centers.append(center)
-
-        line_endpoints = []
-        for i in range(0,len(ship_loc_x)):
-            p = (ship_loc_x[i],ship_loc_y[i])
-            line_endpoints.append(p)
-
         circ,included = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
-        testName = "testEscCoverVB1"
         printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
@@ -290,6 +280,8 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
+
+
 
     def testAreaCoverForEstuary(self):
         """

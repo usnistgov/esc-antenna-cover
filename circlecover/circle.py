@@ -57,7 +57,7 @@ class Circle:
         """
         x = point[0]
         y = point[1]
-        return (x- self.center[0])**2 + (y - self.center[1])**2 <=  1.0005*self.r**2  
+        return (x- self.center[0])**2 + (y - self.center[1])**2 <=  1.005*self.r**2  
 
     def set_radius(self, newradius):
          self.r = newradius

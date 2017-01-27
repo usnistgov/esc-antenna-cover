@@ -12,6 +12,7 @@ import json
 import circlecover
 import os
 from line import Line
+import matplotlib as mpl
 
 """
 Handles printing output of the tests and visualization of the output.
@@ -33,6 +34,10 @@ def total_area(circle_collection):
     for c in circle_collection:
         total_area = total_area + c.area()
     return total_area
+
+def format_e(n):
+    a = '%E' % n
+    return a.split('E')[0].rstrip('0').rstrip('.') + 'E' + a.split('E')[1]
 
 
 
@@ -161,11 +166,13 @@ def show_results(fileName):
         p = PolygonPatch(ob.get_geometry(), fc=GRAY, ec=GRAY, alpha=0.5, zorder=2)
         ax.add_patch(p)
 
-    title = "Algorithm = " + result["algorithm"] + " excess_area " + str(result["excess_area"]) + " cover_area " + str(result["cover_area"])
+    title = "Algorithm = " + result["algorithm"] + "\nexcess_area = " + str(format_e(result["excess_area"])) + "\ncover_area = " + str(format_e(result["cover_area"]))
     
     plt.suptitle(title)
 
     plt.gcf().canvas.set_window_title(result["testName"] +  "_" + result["algorithm"])
+
+    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
 
     plt.show()
 

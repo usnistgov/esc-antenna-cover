@@ -18,6 +18,7 @@ logger = logging.getLogger("circlecover")
 
 def compute_excess_area(circles, line_segments, grid_divisions=200):
     """
+    This is a support function that is used to evaluate a cover algorithm.
     compute the excess area - i.e. the area between the line collection
     and the perephry of the circle using numerical integration.
     
@@ -141,6 +142,71 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
+
+    Parameters:
+    
+        possible_centers : Set of locations (points) where sensors may be placed (typically on the shore line).
+        interference_contour: A set of points denoting the boundary of the area that must be protected.
+        min_center_distance: The minimum distance between center locations that is permissible.
+
+    Returns:
+
+        A tuple (cover,points) where :
+
+        cover: A vector  of Circles which covers the entire area enclosed by 
+                the interference_contour and possible_centers.
+        points: An vector of vectors where each vector entry of the inner vector 
+                contains a set of Points covered 
+                by the corresponding Circle in cover.
+
+    Algorithm:
+
+        Prepare the area:
+    
+            1. Construct a polygon consisting of the possible_centers 
+                and interference_contour.
+            2. Add additional points inside the constructed polygon so that the
+                entire area inside he polygon is covered. 
+              
+            Let the points constructed in the previous set  
+            (including the interference_contour but not including possible_centers) 
+            be denoted by interference_set
+
+        Construct the cover for interference_set:
+        
+        Find Cover:
+            Inputs: 
+        
+                1. interference_set : Set of interference points that we want to cover
+                            (from the last step).
+
+                2. possible_centers: Set of possible centers.
+
+                3. min_distance: Minimum distance permissible between circle centers.
+
+            Let cover be the empty set. run the algorithm Find_cover
+
+            Algorithm Find_cover:
+
+                1. For each point in interference_set, find the center from possible_centers
+                    possible_centers that is the smallest circle that encloses that point.
+                    Let the set of such circles be circle_set.
+            
+                2. Find the biggest diameter circle C in circle_set. 
+
+                3. Remove all points in interference_set that is enclosed by C.
+
+                4. If the center of C exists in cover, increase the size of the existing circle. 
+                    otherwise add C to cover.
+        
+                5. If interference_set is empty, terminate.
+
+                6. Remove all centers from the possible_centers set which violate the min_distance constraint.
+                
+                7. Recursively run Find_cover for interference_set
+
+            
+        
     
     """
     def find_tightest_enclosing_circle_for_points(centers,points):
@@ -175,9 +241,25 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
             
 
     def min_area_cover_greedy_worker(centers, interference_set,cover,points):
+        # Find the max_min radius tightest enclosing circle.
         max_min_center, max_min_radius = find_tightest_enclosing_circle_for_points(centers,interference_set) 
-        max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
-        cover.append(max_circle)
+
+        # Check if the circle center aleady exists in our cover.
+        found = False
+        for c in cover:
+            if c.get_center() == max_min_center:
+                c.set_radius(max(max_min_radius,c.get_radius()))
+                max_circle = c
+                found = True
+                break
+    
+        # Circle center does not exist in our cover.
+        # So add it to our cover.
+        if not found:
+            max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
+            cover.append(max_circle)
+
+        # find the points enclosed by the largest max_cover circle.
         max_cover = find_cover(max_circle,interference_set)
         points.append(max_cover)
         # Remove the points from our cover from the interference
@@ -185,12 +267,11 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         for p in max_cover:
             interference_set.remove(p)
         # Remove the center that we used to construct the circle.
-        try:
-            centers.remove(max_circle.get_center())
-        except:
-            pdb.set_trace()
+        centers.remove(max_circle.get_center())
         # Of the remaining centers, remove those that violate our distance criterion.
-        centers_to_remove = [k for k,cntr in enumerate(centers) if distance(cntr,max_circle.get_center()) < min_center_distance ]
+        centers_to_remove = [k for k,cntr in enumerate(centers) 
+                                if distance(cntr,max_circle.get_center()) < min_center_distance  
+                                    and max_circle.get_center() != cntr]
         for k in sorted(centers_to_remove, reverse=True):
             del centers[k]
         # if we have covered every point in the interference set, then we are done.
@@ -295,6 +376,8 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
 
     def min_cover_greedy_with_fixed_discs_worker(centers, radius,interference_contour,cover,points):
         max_circle,max_cover = find_center_with_max_cover(centers,interference_contour,radius)
+        if max_circle is None:
+            return None,None
         cover.append(max_circle)
         points.append(max_cover)
 
