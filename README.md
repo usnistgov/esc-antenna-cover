@@ -4,7 +4,7 @@ Minimum circle cover from a set of center points covering a set of lines.
 
 This package consists of three circle cover algorithms:
 
-1. Variable radius edge cover:
+### Variable radius edge cover:
 
 Given a set of M points on a plane where circles can be centered and
 a set of N line segments which need to be covered by the circles,
@@ -18,7 +18,7 @@ circles is minimized. For example:
 
 Note that a line segment is covered if no part of it is OUTSIDE a circle.
 
-2. Fixed  radius point cover:
+### Fixed  radius point cover:
 Given a set of M points on a plane where circles can be centered and
 a set of N Points which need to be covered by the circles,
 find the minimum area circle cover for the points. That is,
@@ -30,7 +30,7 @@ circles is minimized. For example:
 
 Note that a point covered if it is within a circle.
 
-3. Variable  radius area cover:
+### Variable  radius area cover:
 Given a set of M points on a plane where circles can be centered and
 a set of N lines, construct a polygon including the M points and N lines.
 find the minimum area circle cover for the polygon. That is
