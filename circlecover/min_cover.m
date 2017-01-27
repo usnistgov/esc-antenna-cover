@@ -37,7 +37,7 @@ function  [centers_x,centers_y,radius] = min_cover(centers,ic, distance)
         contour.append(pypoint);
     end;
   
-    result = py.circlecover.circles.min_cover_greedy(pcenters,contour,distance);
+    result = py.circlecover.circles.min_area_cover_greedy(pcenters,contour,distance);
 
     ccles = result{1};
     centers_x = zeros(1,length(ccles));
