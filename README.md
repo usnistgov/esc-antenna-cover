@@ -13,7 +13,7 @@ find the radii of the circles and the centers (chosen from the M points)
 such that all the N line segments are covered and the total area of the
 circles is minimized. For example:
 
-![alt tag](figures/Estuary_V.png)
+![alt tag](figures/estuary_variableradiuslinecover.png)
 
 
 Note that a line segment is covered if no part of it is OUTSIDE a circle.
@@ -26,7 +26,7 @@ find the fixed radius of the circles and the centers (chosen from the M points)
 such that all the N points are covered and the total area of the
 circles is minimized. For example:
 
-![alt tag](figures/Estuary_F.png)
+![alt tag](figures/estuary_fixedradiuspointcover.png)
 
 Note that a point covered if it is within a circle.
 
@@ -38,7 +38,7 @@ find the radii of the circles and the centers (chosen from the M points)
 such that all the polygon thus defined is covered and the area
 circles is minimized. For example:
 
-![alt tag](figures/Estuary_A.png)
+![alt tag](figures/estuary_areacover.png)
 
 Note that an area is covered if it is within a circle.
 
