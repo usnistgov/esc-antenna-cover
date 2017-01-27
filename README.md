@@ -1,30 +1,51 @@
 ## Geometric Circle-cover
 
-Minimum area circle cover from a set of center points covering a set of lines. 
+Minimum circle cover from a set of center points covering a set of lines. 
+
+This package consists of three circle cover algorithms:
+
+1. Variable radius edge cover:
 
 Given a set of M points on a plane where circles can be centered and
 a set of N line segments which need to be covered by the circles,
 find the minimum area circle cover for the line segments. That is,
 find the radii of the circles and the centers (chosen from the M points)
 such that all the N line segments are covered and the total area of the
-circles is minimized.
+circles is minimized. For example:
+
+![alt tag](figures/Estuary_V.png)
+
 
 Note that a line segment is covered if no part of it is OUTSIDE a circle.
+
+2. Fixed  radius point cover:
+Given a set of M points on a plane where circles can be centered and
+a set of N Points which need to be covered by the circles,
+find the minimum area circle cover for the points. That is,
+find the fixed radius of the circles and the centers (chosen from the M points)
+such that all the N points are covered and the total area of the
+circles is minimized. For example:
+
+![alt tag](figures/Estuary_F.png)
+
+Note that a point covered if it is within a circle.
+
+3. Variable  radius area cover:
+Given a set of M points on a plane where circles can be centered and
+a set of N lines, construct a polygon including the M points and N lines.
+find the minimum area circle cover for the polygon. That is
+find the radii of the circles and the centers (chosen from the M points)
+such that all the polygon thus defined is covered and the area
+circles is minimized. For example:
+
+![alt tag](figures/Estuary_A.png)
+
+Note that an area is covered if it is within a circle.
+
 
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
 
-The main python function in this project implements the following algorithm:
-
-     1. Find the worst line, i.e. the line requiring the largest additional
-     circle area for its best circle center option with the corresponding
-     line segment entirely in the circle. 
-
-     2. Construct / extend the corresponding circle. 
-
-     3. Remove fully covered line segments from the set and cut partially 
-     covered segments at the circle boundary. Remove the center from the set of possible centers. 
-     Iterate until no more line segments remain.
 
 
 A matlab wrapper for the main python functionality is included.

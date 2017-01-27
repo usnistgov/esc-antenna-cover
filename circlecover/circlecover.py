@@ -432,6 +432,17 @@ def min_line_cover_greedy(possible_centers, interference_contour, min_center_dis
     possible_centers : The possible centers where sensors may be placed.
     min_center_distance : The minimum distance between centers. Default value is 0.
 
+
+     1. Find the worst line, i.e. the line requiring the largest additional
+     circle area for its best circle center option with the corresponding
+     line segment entirely in the circle. 
+
+     2. Construct / extend the corresponding circle. 
+
+     3. Remove fully covered line segments from the set and cut partially 
+     covered segments at the circle boundary. Remove the center from the set of possible centers. 
+     Iterate until no more line segments remain.
+
     """
 
     def find_tightest_enclosing_circle(centers,cover,lines):

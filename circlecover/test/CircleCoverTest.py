@@ -283,7 +283,7 @@ class CircleCoverTest(unittest.TestCase):
 
 
 
-    def testAreaCoverForEstuary(self):
+    def testEstuary(self):
         """
         Test for a deep estuary.
         """
@@ -302,6 +302,16 @@ class CircleCoverTest(unittest.TestCase):
 
         circ,included = circlecover.min_point_cover_greedy_with_fixed_discs(centers,interference_contour,min_center_distance=0)
         printcover.printCover(interference_contour,circ,centers,0,[],testName,FIXED_RADIUS)
+        for point in interference_contour:
+            flag = False
+            for c in circ:
+                if c.inside(point):
+                    flag = True
+                    break
+            self.assertTrue(flag)
+
+        circ,included = circlecover.min_line_cover_greedy(centers,interference_contour,min_center_distance=0)
+        printcover.printCover(interference_contour,circ,centers,0,[],testName,VAR_RADIUS)
         for point in interference_contour:
             flag = False
             for c in circ:
