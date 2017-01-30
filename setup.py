@@ -63,5 +63,5 @@ setup(
     'Intended Audience :: NIST CTL',
     'Natural Language :: English',
   ],
-  install_requires = ['numpy']
+  install_requires = ['numpy', 'descartes']
 )

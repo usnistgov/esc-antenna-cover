@@ -1,6 +1,7 @@
 import unittest
 import sys
-sys.path.append('../')
+import os
+sys.path.insert(0,os.path.abspath('../'))
 import circle
 import circlecover
 import line
