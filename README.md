@@ -31,6 +31,7 @@ circles is minimized. For example:
 Note that a point covered if it is within a circle.
 
 ### Variable  radius area cover:
+
 Given a set of M points on a plane where circles can be centered and
 a set of N lines, construct a polygon including the M points and N lines.
 find the minimum area circle cover for the polygon. That is
@@ -40,17 +41,12 @@ circles is minimized. For example:
 
 ![alt tag](figures/estuary_areacover.png)
 
-Note that an area is covered if it is within a circle.
-
+Note that an area is covered if it is within atleast one circle.
 
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
 
-
-
 A matlab wrapper for the main python functionality is included.
-
-
 
 
 ## Installing the code
@@ -79,6 +75,8 @@ Now (for both Linux and Windows) run setup for the current package:
 
 ## USAGE
 ### Python
+
+See circlecover/test
 
 ### MATLAB
 
@@ -159,18 +157,33 @@ Acknowledgement
 ===============
 
 
--- The algorithm implemented here was suggested by Stefan Haustein see:
+-- The variable radius cover algorithms implemented here were suggested by Stefan Haustein see:
 
 	http://stackoverflow.com/questions/40748412/minimun-area-geometric-cover-for-a-set-of-line-segments
 
--- The problem of minimum excess area circle cover was proposed by Tim Hall. 
+    (with modifications)
 
--- Improvements to the algorithm were evolved and bad ideas pruned as a result of discussions with Anastase Nakassis at NIST.
+-- The criterion of minimum excess area circle cover was proposed by Tim Hall. 
 
--- This algorithm was developed for placement of and clibration of ESC sensors for 3.5 GHz spectrum sharing
-   but it is generally applicable for geometric line cover.
+-- Improvements to the algorithm were evolved and bad ideas pruned as
+   a result of discussions with Anastase Nakassis at NIST.
+   Tassos provided counter examples and corner cases to rule out
+   earlier versions of the algorithm. 
 
--- The Author thanks Thao Nguyen, Tim Hall and Anirudha Sahoo for proposing the ESC Sensor placement problem.
+-- This algorithm was developed for placement of and clibration of ESC
+   sensors for 3.5 GHz spectrum sharing but it is generally applicable 
+   for geometric line cover.
+
+-- The fixed disc point cover algorithm was suggested in the paper
+
+    3.5 GHz Environmental Sensing Capability Sensitivity Requirements and Deployment
+    Thao T. Nguyen, Anirudha Sahoo, Michael R. Souryal, and Timothy A. Hall
+    Communications Technology Laboratory
+    National Institute of Standards and Technology
+    Gaithersburg, Maryland, U.S.
+    Email: fttn1,ans9,souryal,tim.hallg@nist.gov
+
+    DySpan 2017, Baltimore, MD
 
 Future Work
 ==========

@@ -16,6 +16,12 @@ from shapely.geometry import Polygon
 
 logger = logging.getLogger("circlecover")
 
+def distance(point1,point2):
+    """
+    Returns the distance between point1 and point2.
+    """
+    return math.sqrt((point1[0] - point2[0])**2  + (point1[1] - point2[1])**2)
+
 def compute_excess_area(circles, line_segments, grid_divisions=200):
     """
     This is a support function that is used to evaluate a cover algorithm.
@@ -132,11 +138,6 @@ def compute_excess_area(circles, line_segments, grid_divisions=200):
 
 
 
-def distance(point1,point2):
-    """
-    Returns the distance between point1 and point2.
-    """
-    return math.sqrt((point1[0] - point2[0])**2  + (point1[1] - point2[1])**2)
 
 def min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0):
     """
@@ -235,6 +236,14 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     def find_cover(circle,points):
         """
         Find the set of points covered by the circle.
+
+        Parameters :
+
+            circle - circle to test.
+            points - set of points for which to check the cover.
+`
+        Note: We can do this in O(log (n)) time if we use a quad tree.
+
         """
         return [p for p in points if circle.inside(p)]
                 
@@ -326,15 +335,56 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
 
     points = []
     cover = []
-    print "interference_set ", len(interference_set)
-    print "interference_contour ", len(interference_contour)
+    logger.debug("interference_set " + str(len(interference_set)))
+    logger.debug("interference_contour " + str(len(interference_contour)))
     cover,covered = min_area_cover_greedy_worker(centers, interference_set,cover,points)
     return cover,covered
 
 
 def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_contour, min_center_distance=0):
     """
-    Greedy cover with fixed size discs.
+    Greedy cover with fixed size discs. Find a cover (circle centers)
+    and fixed circle diameter for a set of points using circles of
+    a fixed diameter where circles can be centered. Both the center
+    locations of the circles AND the fixed diameter of the circles needs
+    to be determined.
+
+    Inputs:
+    
+    possible_centers : centers where circles may be placed 
+        (these points correspond to locations on the shore where sensors may be placed).
+    interference_contour: A set of points that needs to be covered.
+    min_center_distance: lower bound on the spacing between circles.
+
+    Returns:
+        
+    A tuple (cover,covered) where:
+
+    - cover: is a set of fixed diameter circles that completely cover interference contour points.
+    - covered: A disjoint set of points covered by each circle as computed by the algorithm.
+
+    Algorithm:
+
+    1. Find the circle diameter:
+        - For each point i in interference_contour:
+            For each center j in possible_centers:
+                find the distance d[ij] between i and j
+        - Find the maximum distance D of all the d[ij] previously computed.
+
+    2. Find the center C in possible_centers such that the circle of diameter D 
+        covers the greatest number of points in the interference_contour.
+
+    3. Place the circle at C. Let Q be the set of points covered by the circle at C
+
+    4. Remove Q from interference_contour. If interference_contour is empty, STOP.
+
+    5. Remove C from the possible_centers.
+
+    6. Remove all centers from possible_centers that are closer than min_center_distance to C.
+    
+    7. Go to step 2.
+
+ 
     
     """
     def find_tightest_enclosing_circle_for_points(centers,points):
@@ -425,12 +475,16 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
 def min_line_cover_greedy(possible_centers, interference_contour, min_center_distance = 0):
     """
     Given a set of lines that form a multiline segment, cover the line segments
-    with circles who's centers are closest to the intersection line.
+    with circles. 
 
+
+    Parameters:
 
     interference_contour : The interference contour.
     possible_centers : The possible centers where sensors may be placed.
     min_center_distance : The minimum distance between centers. Default value is 0.
+
+    Algorithm:
 
 
      1. Find the worst line, i.e. the line requiring the largest additional
@@ -440,8 +494,9 @@ def min_line_cover_greedy(possible_centers, interference_contour, min_center_dis
      2. Construct / extend the corresponding circle. 
 
      3. Remove fully covered line segments from the set and cut partially 
-     covered segments at the circle boundary. Remove the center from the set of possible centers. 
+     covered segments at the circle boundary. Generate a new set of segments.
      Iterate until no more line segments remain.
+
 
     """
 
