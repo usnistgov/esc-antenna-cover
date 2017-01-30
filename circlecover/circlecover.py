@@ -382,7 +382,11 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
 
     6. Remove all centers from possible_centers that are closer than min_center_distance to C.
     
-    7. Go to step 2.
+    7. If interference_contour is not empty and possible_centers is empty:
+            Increase D by some fraction (10%).
+            restore the original original interference_contour
+
+       Go to step 2.
 
  
     
