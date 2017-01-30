@@ -80,11 +80,11 @@ See circlecover/test
 
 ### MATLAB
 
-Add the circlecover directory to your matlab path.
+Add the circle-cover/circlecover directory to your matlab path.
 
 See the documentation help min\_cover for usage.
 
-See the example in circlecover/test/CircleCoverTest.m
+See the example in circlecover/test/CircleCoverTest.m :
 
 
     esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,...
