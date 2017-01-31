@@ -39,6 +39,17 @@ def read_version():
     exec(open(version_path).read(), v_globals, v_locals)
     return v_locals['__version__']
 
+name = "circlecover"
+
+rootdir = os.path.abspath(os.path.dirname(__file__))
+
+# Restructured text project description read from file
+long_description = open(os.path.join(rootdir, 'README.md')).read()
+
+# Build a list of all project modules
+
+package_dir = {name: name}
+
 
 setup(
   name = 'circlecover',
@@ -48,7 +59,7 @@ setup(
   author = 'M. Ranganathan',
   author_email = 'mranga@nist.gov',
   url = 'https://github.com/usnistgov/circle-cover',
-  packages = ['circlecover', 'circlecover.test'],
+  packages = ['circlecover'],
   package_dir={'circlecover':'circlecover'},
   package_data={'circlecover':['min_cover.m']},
   long_description='see https://github.com/usnistgov/circle-cover',
@@ -62,6 +73,11 @@ setup(
     'License :: Public Domain',
     'Intended Audience :: NIST CTL',
     'Natural Language :: English',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.2',
+    'Programming Language :: Python :: 3.3',
+    'Programming Language :: Python :: 3.4',
   ],
   install_requires = ['numpy', 'descartes']
 )
