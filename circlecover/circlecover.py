@@ -127,9 +127,11 @@ def compute_excess_area(circles, line_segments, grid_divisions=200):
         # figure out the points in the annulus. Note that we consider a point to be in the annulus if 
         # the center is in corresponding grid point is in the annulus
         filteredPoints = filter(lambda p: c.inside((p[0] + grid_size/2, p[1] + grid_size/2)) and isoutside(c,segments,(p[0] + grid_size/2, p[1] + grid_size/2)),grid)
+        k = 0
         for p in filteredPoints:
             grid.remove(p)
-        count = count + len(filteredPoints)
+            k = k + 1
+        count = count + k
     area = count * grid_size * grid_size
     return area,grid_area
 
@@ -439,7 +441,7 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
             return cover,points
         else:
             if len(centers) == 0:
-                print "Cover not found increase radius"
+                print("Cover not found increase radius")
                 return None,None
             return min_cover_greedy_with_fixed_discs_worker(centers,radius,interference_contour,cover,points)
 
@@ -454,7 +456,7 @@ def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_conto
         cover,covered =  min_cover_greedy_with_fixed_discs_worker(centers,max_min_radius,ifcontour,cover,points)
         if cover is None:
             max_min_radius = 1.1 * max_min_radius
-            print "Retrying with radius = ", max_min_radius
+            print( "Retrying with radius = " + str( max_min_radius ) )
         else:
             break
 

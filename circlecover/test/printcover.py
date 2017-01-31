@@ -148,7 +148,7 @@ def show_results(fileName):
         plot_point(ax,cover_centers[0],BLACK)
         circ = circ.union(Point(cover_centers[0]))
 
-    print "Bounds = ", str(circ.bounds)
+    print( "Bounds = " + str(circ.bounds) )
 
     for i in range(1,len(cover)):
         circ = circ.union(cover[i].get_geometry())
@@ -174,6 +174,8 @@ def show_results(fileName):
 
     mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
 
+
+    
     plt.show()
 
     

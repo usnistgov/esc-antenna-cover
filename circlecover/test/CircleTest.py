@@ -93,7 +93,8 @@ class CircleTest(unittest.TestCase):
         # Now check if the exact computation matches the approximate
         # computation approximately.
         self.assertTrue(np.allclose(segmentArea,sliceArea,rtol=1e-3))
-        print "segmentArea ", segmentArea, " approximate sliceArea " , sliceArea
+        print("segmentArea " + str( segmentArea) +  " approximate sliceArea " 
+                    + str(sliceArea) )
 
 
     def testLineIntersectsCircle2(self):

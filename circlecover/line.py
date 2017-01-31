@@ -25,11 +25,11 @@ class Line(LineString):
 
 
     def intersects(self,line2):
-	"""
-	Fast boolean check to test if given line segment
-	intersects another line segment.
-	http://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
-	"""
+        """
+        Fast boolean check to test if given line segment
+        intersects another line segment.
+        http://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
+        """
         def ccw(A,B,C):
             return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
 
