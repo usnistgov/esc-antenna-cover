@@ -263,6 +263,8 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         if not found:
             max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
             cover.append(max_circle)
+            # Remove the center that we used to construct the circle.
+            centers.remove(max_circle.get_center())
 
         # find the points enclosed by the largest max_cover circle.
         max_cover = find_cover(max_circle,interference_set)
@@ -271,8 +273,6 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         # contour. This leaves the others to be covered.
         for p in max_cover:
             interference_set.remove(p)
-        # Remove the center that we used to construct the circle.
-        centers.remove(max_circle.get_center())
         # Of the remaining centers, remove those that violate our distance criterion.
         centers_to_remove = [k for k,cntr in enumerate(centers)
                                 if distance(cntr,max_circle.get_center()) < min_center_distance

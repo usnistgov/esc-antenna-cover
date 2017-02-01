@@ -44,7 +44,7 @@ circles is minimized. For example:
 Note that an area is covered if it is within atleast one circle.
 
 The target application for this code is ESC sensor placement and sensitivity
-tuning for 3.5 GHZ spectrum sharing.http://www.scipy.org/install.html
+tuning for 3.5 GHZ spectrum sharing.
 
 A matlab wrapper for the main python functionality is included.
 
@@ -55,22 +55,18 @@ A matlab wrapper for the main python functionality is included.
 
 Install Shapley Package 
 
-For Linux:
-
-    pip install shapely
-
 
 For windows: 
 
-Download the shapley installer for your architecture:
+-- Download the shapley installer for your architecture:
 
-    http://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
+   http://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely
 	
-Run pip install on the downloaded .whl file.
+   Run pip install on the downloaded .whl file.
 
-Download and install matplotlib and numpy:
+-- Download and install matplotlib and numpy:
 
-	http://www.scipy.org/install.html
+http://www.scipy.org/install.html
 
 ### Installation 
 
@@ -78,6 +74,9 @@ Now (for both Linux and Windows) run setup for the current package:
 
     python setup.py install
 
+    ( this will also install all dependencies 
+     - i.e. numpy, shapely  and matplotlib for Linux,
+     and put everything where your python interpreter can find it)
 
 ## USAGE
 ### Python
