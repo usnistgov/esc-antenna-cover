@@ -264,6 +264,8 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
             max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
             cover.append(max_circle)
             # Remove the center that we used to construct the circle.
+
+        if max_circle.get_center() in centers:
             centers.remove(max_circle.get_center())
 
         # find the points enclosed by the largest max_cover circle.
@@ -314,7 +316,7 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         interference_set.append(point)
 
     # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
-    ndivs = 60
+    ndivs = 100 
     deltaX = (xmax - xmin)/ndivs
     deltaY = (ymax - ymin)/ndivs
     # We add additional points inside the contour to make sure that our area
