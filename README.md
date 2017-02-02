@@ -1,6 +1,7 @@
 ## Geometric Circle-cover
 
-Minimum circle cover from a set of center points covering a set of lines. 
+Minimum circle cover from a set of center points covering a 
+set of lines , a set of points or an enclosed area. 
 
 This package consists of three circle cover algorithms:
 
@@ -177,7 +178,7 @@ Acknowledgement
 
 -- This algorithm was developed for placement of and clibration of ESC
    sensors for 3.5 GHz spectrum sharing but it is generally applicable 
-   for geometric line cover.
+   for geometric cover.
 
 -- The fixed disc point cover algorithm was suggested in the paper
 
