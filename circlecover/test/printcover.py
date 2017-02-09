@@ -38,6 +38,7 @@ import argparse
 import json
 import circlecover
 import os
+import excessarea
 from line import Line
 import matplotlib as mpl
 
@@ -96,7 +97,7 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
         lines.append(l)
         p0 = p1
 
-    earea,carea = circlecover.compute_excess_area(cover,lines)
+    earea,carea = excessarea.compute_excess_area(cover,lines)
 
     newcover = []
     for c in cover:

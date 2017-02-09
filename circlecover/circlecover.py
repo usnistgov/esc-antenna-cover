@@ -27,7 +27,6 @@
 
 import circle as ccle
 import line
-import itertools
 import sys
 import pdb
 import numpy as np
@@ -214,8 +213,8 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
             Algorithm Find_cover:
 
                 1. For each point in interference_set, find the center from possible_centers
-                    possible_centers that is the smallest circle that encloses that point.
-                    Let the set of such circles be circle_set.
+                    possible_centers that is center of the the smallest circle that 
+                    encloses that point.  Let the set of such circles be circle_set.
 
                 2. Find the biggest diameter circle C in circle_set.
 
