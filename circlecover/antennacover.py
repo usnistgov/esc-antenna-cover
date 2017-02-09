@@ -1,4 +1,5 @@
 
+
 # This software was developed by employees of the National Institute
 # of Standards and Technology (NIST), an agency of the Federal
 # Government. Pursuant to title 17 United States Code Section 105, works
@@ -33,13 +34,16 @@ import numpy as np
 import traceback
 import math
 import random
+import bisect
 from line import Line
 import logging
+import circlecover
 import copy
 from shapely.geometry import MultiPoint
 from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely import affinity
+
 
 logger = logging.getLogger("circlecover")
 
@@ -51,10 +55,10 @@ def distance(point1,point2):
 
 
 def pol2cart(r,theta):
-    return (r*math.cos(theta/180*math.pi), r*math.sin(theta/180*math.pi))
+    return (r*math.cos(float(theta)/180*math.pi), r*math.sin(float(theta)/180*math.pi))
 
 
-def read_antenna_cover_area(fileName):
+def read_detection_coverage(fileName):
     """
     Read a bunch of antenna patterns and return an array of arrays containing the results.
     Returns a set tuples. The first element of the tuple is the max reach of the antenna
@@ -62,37 +66,144 @@ def read_antenna_cover_area(fileName):
 
     """
     f = open(fileName)
-    lines = readlines(f)
+    lines = f.readlines()
     polarLocations = eval(lines[0])
     results = []
     for i in range(1,len(lines)):
         coverage = eval(lines[i])
-        thiscover = [pol2cart(coverage[j],polarlocations[j] for j in range(0,len(polarlocations))]
-        maxcover = math.max(coverage)
-        p = Polygon(thiscover)
-        results.append((maxcover,p))
+        thiscover = [pol2cart(coverage[j],polarLocations[j]) for j in range(0,len(polarLocations))]
+        max_distance_covered = np.max(coverage) 
+        coverage_polygon = Polygon(thiscover)
+        # Attach it as a tuple of < max_distance_covered, coverage_polygon  >
+        results.append((max_distance_covered,coverage_polygon))
+    # Sort the points by max extent. This allows us to do a binary search
+    # to find the detection coverage.
+    results = sorted(results,key=lambda x : x[0])
     return results
 
 
 
 
-def angle(r1,r2):
+def angle(center,r):
     """ return the angle between r1,r2 and the horizontal axis"""
-    dx = r2[1] - r1[1]
-    dy = r2[0] - r1[0]
-    if dx == 0 :
-        return math.pi/2
+
+    delta_x = abs(r[0] - center[0])
+    delta_y = abs(r[1] - center[1])
+    ang = math.atan2(delta_y,delta_x)
+
+    if r[0] >= center[0] and r[1] < center[1]:
+        # 4th. quad
+        return 2*math.pi -ang
+    elif r[0] >= center[0] and r[1] > center[1]:
+        # 1st quad
+        return ang
+    elif r[0] <= center[0] and r[1] > center[1]:
+        # second quad
+        return math.pi - ang
+    elif r[0] <= center[0] and r[1] < center[1]:
+        # third quad
+        return (math.pi + ang)
     else:
-        slope = dy/dx
-        return math.atan(slope)
+        return ang
+
 
 def rotate(polygon, rotation_angle):
-    return affinity.rotate(polygon,rotation_angle,(0,0),use_radians = True)
+    """
+    Rotate a polygon to a rotation_angle.
+    """
+    return affinity.rotate(polygon,rotation_angle,origin=(0,0),use_radians = True)
+
+
+def translate(polygon, point):
+    """
+    Translate a polygon from the origin to a point.
+    """
+    return affinity.translate(polygon,xoff=point[0],yoff=point[1])
+
+
+def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle):
+    """
+    Find the overlay pattern for antennas so they cover a sector.
+    """
+    def find_cover(rotated_antenna_pattern,points_to_cover):
+        retval = []
+        for point in points_to_cover:
+            if rotated_antenna_pattern.contains(Point(point)):
+                retval.append(point)
+        return retval
+
+    def find_antenna_overlay_greedy(rotated_antenna_patterns,center,hull_to_cover,cover_patterns):
+        """
+        Do a greedy overlay of the points included in a circle.
+        """
+        max_cover = []
+        max_pattern = None
+        for pattern in rotated_antenna_patterns:
+            cover = find_cover(pattern[2],hull_to_cover)
+            if len(cover) > len(max_cover):
+                max_cover = cover
+                max_pattern = pattern
+
+        if len(max_cover) == 0:
+            return cover_patterns
+    
+        for point in max_cover:
+            hull_to_cover.remove(point)
+
+        cover_patterns.append(max_pattern)
+        rotated_antenna_patterns.remove(max_pattern)
+        return find_antenna_overlay_greedy(rotated_antenna_patterns,center,hull_to_cover,cover_patterns)
         
+        
+
+    convex_hull = list(MultiPoint(points_to_cover).convex_hull.exterior.coords)
+    furthest_point_tuple = max([(p,distance(center,p)) for p in convex_hull], key = lambda t:t[1])
+    radius = furthest_point_tuple[1]
+    min_angle = min([angle(center,p) for p in convex_hull])
+    index = bisect.bisect_left(detection_coverage,(radius*1.2,))
+    if index >= len(detection_coverage):
+        raise Exception("Antenna Pattern could not be found")
+    
+    antenna_pattern = detection_coverage[index][1]
+    npatterns = int(2*math.pi / antenna_angle) + 1
+    delta_angle = 2*math.pi / npatterns
+    antenna_patterns_rotated = [(index,counter*delta_angle,translate(rotate(antenna_pattern,counter*delta_angle),center)) for counter in range(0,npatterns)]
+
+    return  find_antenna_overlay_greedy(antenna_patterns_rotated,center,convex_hull,[])
+                
+            
+            
+    
+    
+    
+
+        
+# def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle):
+#    """
+#    Find the overlay pattern for antennas so they cover a sector.
+#    """
+#    convex_hull = MultiPoint(points_to_cover).convex_hull
+#    pdb.set_trace()
+#    angles = [angle(center,p) for p in convex_hull.exterior.coords]
+#    radius = max([distance(center,p) for p in convex_hull.exterior.coords])
+#    index = bisect.bisect_left(detection_coverage,(radius*1.2,))
+#    antenna_pattern = detection_coverage[index][1]
+#    min_angle = min(angles)
+#    max_angle = max(angles)
+#    pdb.set_trace()
+#    delta = abs(max_angle - min_angle)
+#    number_of_antennas =  2 + int(float(delta)/float(antenna_angle))
+#    coverage = []
+#    d_delta = float(delta)/float(number_of_antennas)
+#    for i in range(0,number_of_antennas + 1 ):
+#        azimuth_angle = min_angle + d_delta/2 + i*d_delta
+#        rotated_coverage = rotate(antenna_pattern,azimuth_angle)
+#        coverage.append((index,azimuth_angle,rotated_coverage))
+#    return coverage
     
 
 
-def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0):
+def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
@@ -101,14 +212,16 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
         possible_centers : Set of locations (points) where sensors may be placed (typically on the shore line).
         interference_contour: A set of points denoting the boundary of the area that must be protected.
+        antenna_cover_file: A file (generated offline using propagation modeling) 
+                which indicates the area covered by each antenna with the axis of the antenna horizontal.
         min_center_distance: The minimum distance between center locations that is permissible.
 
     Returns:
 
         A tuple (cover,points) where :
 
-        cover: A vector  of Circles which covers the entire area enclosed by
-                the interference_contour and possible_centers.
+        cover: A vector  of antenna coverage patterns which covers the entire area enclosed by
+                the interference_contour and centered at possible_centers.
         points: An vector of vectors where each vector entry of the inner vector
                 contains a set of Points covered
                 by the corresponding Circle in cover.
@@ -142,159 +255,35 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
             Algorithm Find_cover:
 
-                1. For each point in interference_set, find the center from possible_centers
-                    that is the smallest antenna coverage shape for that point.
-                    Let the set of such such coverage shapes be coverage_set.
+                1.  Find the minimum circle cover.
 
-                2. Find the biggest coverage area  C in coverage_set.
-
-                3. Remove all points in interference_set that is enclosed by C.
-
-                4. If the center of C exists in cover, increase the size of the existing circle.
-                    otherwise add C to cover.
-
-                5. If interference_set is empty, terminate.
-
-                6. Remove all centers from the possible_centers set which violate the min_distance constraint.
-
-                7. Recursively run Find_cover for interference_set
-
-
+                2.  Cover each circle with antennas such that the circles are completely covered.
 
 
     """
-    def find_tightest_enclosing_shape_for_points(centers,points):
-        """
-        Find the max-min circle. i.e. for each point of the collection
-        find the tightest circle that encloses the point.
-        Of all these circles return the one with the maximum diameter.
-        """
-        dist = [(center,point,distance(point,center)) for center in centers for point in points]
-        retval = []
-        # For each point, find the tightest shape that encloses the point. The center has to be
-        # placed on one of the possible centers.
-        for point in points:
-            min_dist = min([ d for d in dist if d[1] == point ] , key = lambda t:t[2])
-            retval.append(min_dist)
 
-        max_min = 0
-        max_min_center = None
-        for r in retval:
-            if r[2] > max_min:
-               max_min_center = r
-               max_min = r[2]
-               max_min_angle = angle(r[1],r[2])
-
-        return max_min_center[0],max_min_center[2],max_min_angle
-
-    def find_cover(antenna_shape,points):
-        """
-        Find the set of points covered by the antenna shape.
-
-        Parameters :
-            antenna_shape - shape to test.
-            points - set of points for which to check the cover.
-`
-        Note: We can do this in O(log (n)) time if we use a quad tree.
-
-        """
-        return [p for p in points if antenna_shape.inside(p)]
-
-
-    def min_antenna_cover_greedy_worker(centers, interference_set,coverage_patterns, cover,points):
-        # Find the max_min radius tightest enclosing circle.
-        max_min_center, max_min_radius, rotation = find_tightest_enclosing_shape_for_points(centers,interference_set)
-
-        # Check if the circle center aleady exists in our cover.
-        found = False
-        for c in cover:
-            if c.get_center() == max_min_center:
-                found = True
-                break
-
-        if found:
-            cover.remove(c)
-
-        # Circle center does not exist in our cover.
-        # So add it to our cover.
-        shape  = None
-        for c in coverage_patterns:
-            if c[0] > max_min_radius:
-               shape = c[1]
-               break
-        # Rotate the shape to the axis coordinate.
-        rotated_shape = rotate(shape,rotation)
-
-
-        cover.append(rotated_shape)
-
-        # find the points enclosed by the largest max_cover circle.
-        max_cover = find_cover(rotated,interference_set)
-        points.append(max_cover)
-        # Remove the points from our cover from the interference
-        # contour. This leaves the others to be covered.
-        for p in max_cover:
-            interference_set.remove(p)
-
-        # Of the remaining centers, remove those that violate our distance criterion.
-        centers_to_remove = [k for k,cntr in enumerate(centers)
-                                if distance(cntr,max_circle.get_center()) < min_center_distance
-                                    and max_circle.get_center() != cntr]
-        for k in sorted(centers_to_remove, reverse=True):
-            del centers[k]
-        # if we have covered every point in the interference set, then we are done.
-        if len(interference_set) == 0:
-            return cover,points
-        else:
-            return min_area_cover_greedy_worker(centers,interference_set,cover,points)
+    
+        
 
     centers = copy.copy(possible_centers)
+    antenna_cover_patterns = read_detection_coverage(antenna_cover_file)
+    # Find the min circle cover.
+    cover,covered_point_sets = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
+    
+    # For each of the covered sets, find an antenna cover. 
+    
+    antenna_coverage = []
 
-    ifcontour = copy.copy(interference_contour)
-    # Create a multipoint polygon coonsisting of the original contour 
-    # and the possible centers
-    points = []
-    for point in interference_contour:
-        points.append(point)
+    for i in range(0,len(covered_point_sets)):
+        points_to_cover = covered_point_sets[i]
+        radius = cover[i].get_radius()
+        center = cover[i].get_center()
+        coverage = find_antenna_overlay_for_points(points_to_cover, center, radius, antenna_cover_patterns,float(antenna_angle)/float(180) * math.pi)
+        # Return a set of triples - (center,index,angle) where index is the index into the coverage map.
+        antenna_coverage = antenna_coverage +  [(center,c[0],c[1])  for (k,c) in enumerate(coverage)]
 
-    centers.reverse()
-    for point in centers:
-        points.append(point)
 
-    mp = Polygon(points)
-
-    # mp now contains the points of the interference contour as well as the 
-    # shore locations.
-
-    xmin = float(mp.bounds[0])
-    ymin = float(mp.bounds[1])
-    xmax = float(mp.bounds[2])
-    ymax = float(mp.bounds[3])
-
-    interference_set = []
-
-    for point in interference_contour:
-        interference_set.append(point)
-
-    # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
-    ndivs = 100 
-    deltaX = (xmax - xmin)/ndivs
-    deltaY = (ymax - ymin)/ndivs
-    # We add additional points inside the contour to make sure that our area
-    # is entirely covered.
-    for i in range(1,ndivs):
-        for j in range(1,ndivs):
-            x = xmin + deltaX*i
-            y = ymin + deltaY*j
-            if mp.contains(Point(x,y)):
-                interference_set.append((x,y))
-
-    points = []
-    cover = []
-    logger.debug("interference_set size " + str(len(interference_set)))
-    logger.debug("interference_contour size " + str(len(interference_contour)))
-    antenna_cover = read_antenna_cover_area(antenna_cover_file)
-    cover,covered = min_antenna_cover_greedy_worker(centers, interference_set, antenna_cover, cover,points)
-    return cover,covered
+    return antenna_coverage
+        
 
 
