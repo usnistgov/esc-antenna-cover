@@ -28,6 +28,7 @@
 import sys
 sys.path.append('../')
 from shapely.geometry import Point
+from shapely.geometry import MultiPoint
 from shapely.geometry import LineString
 from descartes import PolygonPatch
 from matplotlib.patches import Polygon
@@ -37,6 +38,7 @@ import pdb
 import argparse
 import json
 import circlecover
+import antennacover
 import os
 import excessarea
 from line import Line
@@ -65,10 +67,69 @@ def total_area(circle_collection):
         total_area = total_area + c.area()
     return total_area
 
+def plot_coords(ax, ob, point_color):
+    x, y = ob.xy
+    ax.plot(x, y, 'o', color=point_color, zorder=1)
+
+def plot_point(ax,point,point_color):
+    ax.plot(point[0],point[1],'o',color=point_color,zorder=1)
+
+def plot_line(ax, ob, line_color):
+    x, y = ob.xy
+    ax.plot(x, y, color=line_color, alpha=0.7, linewidth=3, solid_capstyle='round', zorder=2)
+
+
+
 def format_e(n):
     a = '%E' % n
     return a.split('E')[0].rstrip('0').rstrip('.') + 'E' + a.split('E')[1]
 
+def printAntennaCircleCover(testName,testCircle,cover,coverage_file,points_to_cover):
+    result = {}
+    angles = []
+    indices = []
+    result['center'] = testCircle.get_center()
+    for c in cover:
+        indices.append(c[0])
+        angles.append(c[1])
+    result['indexes'] = indices
+    result['angles'] = angles
+    result["detection_coverage_file"] = coverage_file
+    convex_hull = list(MultiPoint(points_to_cover).convex_hull.exterior.coords)
+    result["convex_hull"] = list(convex_hull)
+    output_file = testName + ".txt"
+    f = open("test-results/" + output_file,"w")
+    to_write = json.dumps(result,indent=4)
+    f.write(to_write)
+    f.close()
+
+
+def printAntennaCover(testName, interference_contour, possible_centers,  cover, coverage_file, min_separation):
+    result = {}
+    angles = []
+    indices = []
+    centers = []
+    for c in cover:
+        centers.append(c[0])
+        indices.append(c[1])
+        angles.append (c[2])
+    result["possible_centers"] = possible_centers
+    result["cover_centers"] =  centers
+    result["angles"] =  angles
+    result["indexes"] = indices
+    result["detection_coverage_file"] = coverage_file
+    result["test_name"] = testName
+    result["interference_contour"] = interference_contour
+    result["algorithm"] = "AntennaCover"
+    outputFile = testName + ".txt"
+    if not os.path.exists("test-results") :
+        os.mkdir("test-results")
+    output_file = testName + "AntennaCover.txt"
+    f = open("test-results/" + output_file,"w")
+    to_write = json.dumps(result,indent=4)
+    f.write(to_write)
+    f.close()
+    
 
 
 def printCover(line_endpoints,cover,centers,min_separation,covered_segments,testName, algorithm):
@@ -123,6 +184,89 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
     
 
 
+    
+def show_results_for_antenna_circle_cover(fileName) :
+    plt.figure(dpi=90)
+    # get the current axes.
+    ax = plt.gca()
+    f = open(fileName)
+    result = json.load(f)
+    coverage_filename = result["detection_coverage_file"]
+    indexes = result["indexes"]
+    angles = result["angles"]
+    center = result["center"]
+    convex_hull = result["convex_hull"]
+    detection_coverage = antennacover.read_detection_coverage(coverage_filename)
+    circ = None
+    for k in range(0,len(indexes)):
+        polygon = detection_coverage[indexes[k]][1]
+        rotated_cover = antennacover.rotate(polygon,angles[k])
+        rotated_translated_cover = antennacover.translate(rotated_cover,center)
+        if circ is None:
+            circ = rotated_translated_cover
+        else:
+            circ = circ.union(rotated_translated_cover)
+        p = PolygonPatch(rotated_translated_cover, fc=GRAY, ec=GRAY, alpha=0.5, zorder=2)
+        ax.add_patch(p)
+
+    for p in convex_hull:
+        plot_point(ax,p,RED)
+    
+    xmin = float(circ.bounds[0])
+    ymin = float(circ.bounds[1])
+    xmax = float(circ.bounds[2])
+    ymax = float(circ.bounds[3])
+    ax.set_xlim([xmin,xmax])
+    ax.set_ylim([ymin,ymax])
+    
+    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    plt.show()
+
+def show_results_for_antenna_cover(fileName):
+    plt.figure(dpi=90)
+    # get the current axes.
+    ax = plt.gca()
+    f = open(fileName)
+    result = json.load(f)
+    line_endpoints = result['interference_contour']
+    interference_linestring = LineString(line_endpoints)
+    circ = interference_linestring
+    plot_coords(ax,interference_linestring,RED)
+    plot_line(ax,interference_linestring,YELLOW)
+    possible_centers = result['possible_centers']
+    cover_centers = result['cover_centers']
+    centers_linestring = LineString(cover_centers)
+    possible_centers_linestring = LineString(possible_centers)
+    circ = circ.union(centers_linestring)
+    plot_coords(ax,centers_linestring,GREEN)
+    plot_line(ax,possible_centers_linestring,BLUE)
+    
+    angles = result['angles']
+    indexes = result['indexes']
+    # load the antenna pattern file.
+    coverage_filename = result['detection_coverage_file']
+    detection_coverage = antennacover.read_detection_coverage(coverage_filename)
+    for i in range(0,len(indexes)):
+        polygon = detection_coverage[indexes[i]][1]
+        rotated_cover = antennacover.rotate(polygon,angles[i])
+        rotated_translated_cover = antennacover.translate(rotated_cover,cover_centers[i])
+        circ = circ.union(rotated_translated_cover)
+        p = PolygonPatch(rotated_translated_cover, fc=GRAY, ec=GRAY, alpha=0.5, zorder=2)
+        ax.add_patch(p)
+
+    xmin = float(circ.bounds[0])
+    ymin = float(circ.bounds[1])
+    xmax = float(circ.bounds[2])
+    ymax = float(circ.bounds[3])
+    ax.set_xlim([xmin,xmax])
+    ax.set_ylim([ymin,ymax])
+    
+    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    plt.show()
+
+
+
+
 def show_results(fileName):
     """
     Read the json formatted file previously stored and display it.
@@ -133,16 +277,6 @@ def show_results(fileName):
         for c in circle_collection:
             total_area = total_area + c.area()
 
-    def plot_coords(ax, ob, point_color):
-        x, y = ob.xy
-        ax.plot(x, y, 'o', color=point_color, zorder=1)
-
-    def plot_point(ax,point,point_color):
-        ax.plot(point[0],point[1],'o',color=point_color,zorder=1)
-
-    def plot_line(ax, ob, line_color):
-        x, y = ob.xy
-        ax.plot(x, y, color=line_color, alpha=0.7, linewidth=3, solid_capstyle='round', zorder=2)
 
 
     f = open(fileName)
@@ -213,8 +347,17 @@ def show_results(fileName):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process arguments.')
     parser.add_argument("-f",help = "Result file")
+    parser.add_argument("-a",help = "Result file")
+    parser.add_argument("-t",help = "Result file")
     args = parser.parse_args()
-    fileName = args.f
-    show_results(fileName)
+    if args.f  is not None:
+        fileName = args.f
+        show_results(fileName)
+    elif args.a is not None:
+        fileName = args.a
+        show_results_for_antenna_cover(fileName)
+    elif args.t is not None:
+        fileName = args.t
+        show_results_for_antenna_circle_cover(fileName)
 
     

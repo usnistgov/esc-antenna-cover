@@ -53,6 +53,7 @@ class CircleCoverTest(unittest.TestCase):
 
 
     def testMinimumCircleSetCoverForLineSetGreedy(self):
+        print("testMinimumAreaCircleSetCoverForLineSetGreedy")
         line_endpoints = [[20,80],[50,70],[60,60],[80,50],[60,40],[80,30],[100,30],[90,20]]
         centers = [(10,70),(30,60),(50,55),(50,30),(60,20)]
         testName =  "testMinimumCircleSetCoverForLineSetGreedy"
@@ -90,6 +91,7 @@ class CircleCoverTest(unittest.TestCase):
 
 
     def testMinimumCircleSetCoverForLineSetGreedy2(self):
+        print("testMinimumCircleSetCoverForLineSetGreedy2")
         line_endpoints = [[20,80],[50,70]]
         centers = [(10,70),(40,60)]
         savedCentrs = list(centers)
@@ -108,6 +110,7 @@ class CircleCoverTest(unittest.TestCase):
         printcover.printCover(line_endpoints,circ,savedCentrs,0,segments,testName, VAR_RADIUS)
 
     def testMinimumCircleSetCoverForLineSetGreedy3(self):
+        print("testMinimumCircleSetCoverForLineSetGreedy3")
         line_endpoints = [[20,80],[50,70]]
         centers = [(10,70),(30,60)]
         circ,segments = circlecover.min_area_cover_greedy(centers,line_endpoints)
@@ -125,6 +128,7 @@ class CircleCoverTest(unittest.TestCase):
             self.assertTrue(flag)
 
     def testMinimumCircleSetCoverForLineSetGreedyRandom(self):
+        print("testMinimumCircleSetCoverForLineSetGreedyRandom")
         line_endpoints = []
         line_segments = []
         random.seed(0)
@@ -188,6 +192,7 @@ class CircleCoverTest(unittest.TestCase):
 
 
     def testEscCoverVB(self):
+        print("testEscCoverVB")
         esc_loc_x = [1771380,1769310,1769790,1768380,1767390,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]
         esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]
         ship_loc_x = [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]
