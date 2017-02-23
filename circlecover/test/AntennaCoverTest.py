@@ -194,5 +194,5 @@ class AntennaCoverTest(unittest.TestCase):
         min_ctr_dist = 0
         cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,"DetectionCoverage.txt",60,min_center_distance=min_ctr_dist)
         testName = "Estuary"
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,"DetectionCoverage.txt",min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, centers, cover,"DetectionCoverage.txt",60,min_ctr_dist)
 

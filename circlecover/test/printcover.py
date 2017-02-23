@@ -104,7 +104,7 @@ def printAntennaCircleCover(testName,testCircle,cover,coverage_file,points_to_co
     f.close()
 
 
-def printAntennaCover(testName, interference_contour, possible_centers,  cover, coverage_file, min_separation):
+def printAntennaCover(testName, interference_contour, possible_centers,  cover, coverage_file, antenna_angle, min_separation):
     result = {}
     angles = []
     indices = []
@@ -113,8 +113,10 @@ def printAntennaCover(testName, interference_contour, possible_centers,  cover, 
         centers.append(c[0])
         indices.append(c[1])
         angles.append (c[2])
+    result["testName"] = testName
     result["possible_centers"] = possible_centers
     result["cover_centers"] =  centers
+    result["antenna_aperture"]= antenna_angle
     result["angles"] =  angles
     result["indexes"] = indices
     result["detection_coverage_file"] = coverage_file
@@ -240,7 +242,6 @@ def show_results_for_antenna_cover(fileName):
     circ = circ.union(centers_linestring)
     plot_coords(ax,centers_linestring,GREEN)
     plot_line(ax,possible_centers_linestring,BLUE)
-    
     angles = result['angles']
     indexes = result['indexes']
     # load the antenna pattern file.
@@ -260,7 +261,10 @@ def show_results_for_antenna_cover(fileName):
     ymax = float(circ.bounds[3])
     ax.set_xlim([xmin,xmax])
     ax.set_ylim([ymin,ymax])
-    
+    antenna_aperture = result['antenna_aperture']
+    title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture)
+    plt.suptitle(title)
+    plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
     mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
     plt.show()
 

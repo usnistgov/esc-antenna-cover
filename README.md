@@ -44,6 +44,18 @@ circles is minimized. For example:
 
 Note that an area is covered if it is within atleast one circle.
 
+
+### Variable Radius Antenna Cover:
+
+Given a set of M points on a plane where multi antenna sensors can be centered and
+a set of N lines, construct a polygon including the M points and N lines.
+find the minimum area antenna cover for the polygon. That is
+find the azimuth angle and sensitivity of the antenna's centers (chosen from the M points)
+such that all the polygon thus defined is covered and the area
+excess area of the cover is minimized. For example:
+
+![alt tag](figures/estuary_antenna_cover60.png)
+
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
 
