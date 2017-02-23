@@ -54,7 +54,7 @@ find the azimuth angle and sensitivity of the antenna's centers (chosen from the
 such that all the polygon thus defined is covered and the area
 excess area of the cover is minimized. For example:
 
-![alt tag](figures/estuary_antenna_cover60.png)
+![alt tag](figures/estuary_antenna_60.png)
 
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
