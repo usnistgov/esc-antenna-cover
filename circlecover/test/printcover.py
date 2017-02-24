@@ -104,7 +104,9 @@ def printAntennaCircleCover(testName,testCircle,cover,coverage_file,points_to_co
     f.close()
 
 
-def printAntennaCover(testName, interference_contour, possible_centers,  cover, coverage_file, antenna_angle, min_separation):
+def printAntennaCover(testName, interference_contour, 
+                      possible_centers, cover, coverage_file, 
+                      antenna_angle, min_separation):
     result = {}
     angles =  [c.angle for c in cover  ]
     indices = [c.index for c in cover   ]
@@ -256,14 +258,22 @@ def show_results_for_antenna_cover(fileName):
         p = PolygonPatch(rotated_translated_cover, fc=GRAY, ec=GRAY, alpha=0.5, zorder=2)
         ax.add_patch(p)
 
-    xmin = float(circ.bounds[0])
-    ymin = float(circ.bounds[1])
-    xmax = float(circ.bounds[2])
-    ymax = float(circ.bounds[3])
-    ax.set_xlim([xmin,xmax])
-    ax.set_ylim([ymin,ymax])
+    xmin,ymin,xmax,ymax = circ.bounds
+
+    #xmin = float(circ.bounds[0])
+    #ymin = float(circ.bounds[1])
+    #xmax = float(circ.bounds[2])
+    #ymax = float(circ.bounds[3])
+
+    delta = max(abs(xmax -xmin),abs(ymax-ymin))
+    
+    ax.set_xlim([xmin,xmin+delta])
+    ax.set_ylim([ymin,ymin+delta])
     antenna_aperture = result['antenna_aperture']
-    title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture)
+    land_excess_area = result["land_excess_area"]
+    sea_excess_area = result["sea_excess_area"]
+    title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture) +\
+            "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area)
     plt.suptitle(title)
     plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
     mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
