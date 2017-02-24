@@ -190,9 +190,10 @@ class AntennaCoverTest(unittest.TestCase):
         Test for a deep estuary.
         """
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
-        centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
+        possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,"DetectionCoverage.txt",60,min_center_distance=min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage.txt",60,min_center_distance=min_ctr_dist)
         testName = "Estuary"
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,"DetectionCoverage.txt",60,min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage.txt",60,min_ctr_dist)
+
 

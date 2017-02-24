@@ -106,13 +106,9 @@ def printAntennaCircleCover(testName,testCircle,cover,coverage_file,points_to_co
 
 def printAntennaCover(testName, interference_contour, possible_centers,  cover, coverage_file, antenna_angle, min_separation):
     result = {}
-    angles = []
-    indices = []
-    centers = []
-    for c in cover:
-        centers.append(c[0])
-        indices.append(c[1])
-        angles.append (c[2])
+    angles =  [c.angle for c in cover  ]
+    indices = [c.index for c in cover   ]
+    centers = [c.center for c in cover   ]
     result["testName"] = testName
     result["possible_centers"] = possible_centers
     result["cover_centers"] =  centers
@@ -123,6 +119,11 @@ def printAntennaCover(testName, interference_contour, possible_centers,  cover, 
     result["test_name"] = testName
     result["interference_contour"] = interference_contour
     result["algorithm"] = "AntennaCover"
+    sea_excess_area,land_excess_area = excessarea.compute_excess_area_for_antenna_cover(indices, 
+            angles, centers, coverage_file, possible_centers, interference_contour)
+    result["sea_excess_area"] = sea_excess_area
+    result["land_excess_area"] = land_excess_area
+
     outputFile = testName + ".txt"
     if not os.path.exists("test-results") :
         os.mkdir("test-results")
@@ -334,7 +335,7 @@ def show_results(fileName):
         p = PolygonPatch(ob.get_geometry(), fc=GRAY, ec=GRAY, alpha=0.5, zorder=2)
         ax.add_patch(p)
 
-    title = "Algorithm = " + result["algorithm"] + "\nexcess_area = " + str(format_e(result["excess_area"])) + "\ncover_area = " + str(format_e(result["cover_area"]))
+    title = "Algorithm = " + result["algorithm"] + "\nsea_excess_area = " + str(format_e(result["excess_area"])) + "\ncover_area = " + str(format_e(result["cover_area"]))
     
     plt.suptitle(title)
 

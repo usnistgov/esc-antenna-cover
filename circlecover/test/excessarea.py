@@ -1,6 +1,108 @@
 from shapely.geometry import Polygon
+from shapely.geometry import Point
+from shapely.geometry import LineString
 import circle
 import line
+import antennacover
+import copy
+import pdb
+from collections import namedtuple
+
+
+def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
+            possible_centers, interference_contour):
+    """
+    Parameters:
+        indexes - the selected contours from detection_coverage_file
+        angles - the orientation of each antenna.
+        centers : the centers of the sensors (ordered).
+        interference_contour : The interference contour point set (ordered)
+        detection_coverage_file: The detection coverage file.
+    """
+
+    def generate_bounding_polygon(possible_centers,interference_contour):
+        centers = copy.copy(possible_centers)
+        # Create a multipoint polygon coonsisting of the original contour 
+        # and the possible centers
+        points = [point for point in interference_contour]
+        # The centers and the shore points are listed in the same sorted order
+        centers.reverse()
+        for point in centers:
+            points.append(point)
+        # The polygon encloses the interference contour as well as the shore.
+        # This is the region that needs to be covered.
+        mp = Polygon(points)
+        return mp
+
+
+    def generate_antenna_cover_polygons(indexes,angles,centres,detection_coverage):
+        polygons = []
+        for i in range(0,len(indexes)):
+            polygon = detection_coverage[indexes[i]].coverage_area
+            angle = angles[i]
+            center = centers[i]
+            rotated_translated_polygon = antennacover.translate(antennacover.rotate(polygon,angle),center)
+            polygons.append(rotated_translated_polygon)
+        return polygons
+
+
+
+
+    # load the detection coverage file.
+    detection_coverage = antennacover.read_detection_coverage(detection_coverage_file)
+    
+    # the bounding polygon representing the if-contour and the possible centers. This bounds the region that
+    # needs to be covered.
+    bounding_polygon = generate_bounding_polygon(possible_centers,interference_contour)
+
+    # Line string representing the interference contour. Add first and last point 
+    # of possible_centers to this. This is the interference contour that is on the sea.
+    interference_contour.append(possible_centers[-1])
+    interference_contour.insert(0,possible_centers[0])
+    interference_contour_linestring = LineString(interference_contour)
+    
+    # Line string representing the possible sensor locations 
+    possible_centers_linestring = LineString(possible_centers)
+
+    # the polygons representing the antenna shapes (rotated and translated)
+    antenna_cover_polygons = generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage)
+    # Take the union of these shapes
+    union = antenna_cover_polygons[0]
+    for i in range(1,len(antenna_cover_polygons)):
+        union = union.union(antenna_cover_polygons[i])
+    # Construct a polygon consisting of the boundary of the shapes.
+    antenna_cover_polygon = Polygon(union.boundary)
+    minx,miny,maxx,maxy = antenna_cover_polygon.bounds
+
+    # Generate a point set and classify.
+    ndivs = 100
+    deltax,deltay = float(maxx-minx)/ndivs, float(maxy-miny)/ndivs
+    area_per_grid_point = deltax*deltay
+    
+    excess_sea_coverage_count = 0
+    excess_land_coverage_count = 0
+    for i in range(0,ndivs):
+        for j in range(0,ndivs):
+            p = Point(minx + i*deltax, miny + j*deltay)
+            if antenna_cover_polygon.contains(p) and not bounding_polygon.contains(p):
+                # The point p is now either on sea or land.
+                d1 = interference_contour_linestring.distance(p)
+                d2 = possible_centers_linestring.distance(p)
+                if d1 <  d2 :
+                    excess_sea_coverage_count = excess_sea_coverage_count + 1
+                else:
+                    excess_land_coverage_count = excess_land_coverage_count + 1
+
+    return (excess_sea_coverage_count*area_per_grid_point, excess_land_coverage_count*area_per_grid_point)
+                        
+    
+
+        
+        
+        
+        
+
+
 
 def compute_excess_area(circles, line_segments, grid_divisions=200):
     """
@@ -23,6 +125,9 @@ def compute_excess_area(circles, line_segments, grid_divisions=200):
                 intersection_count = intersection_count + 1
         #odd number of intersections means point is in 
         #excess area region.
+        # Note that this ONLY works if the interference contour
+        # is entirely to ONE side of the centers (as will usually 
+        # be the case
         return (intersection_count % 2) == 1
 
     def get_line_segments_for_circle(circle,line_segments):

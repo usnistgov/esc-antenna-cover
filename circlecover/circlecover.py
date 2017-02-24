@@ -333,15 +333,11 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
 
     # Create a multipoint polygon coonsisting of the original contour 
     # and the possible centers
-    points = []
-    for point in interference_contour:
-        points.append(point)
-    
+    points = [point for point in interference_contour]
     # The centers and the shore points are listed in the same sorted order
     centers.reverse()
     for point in centers:
         points.append(point)
-
     # The polygon encloses the interference contour as well as the shore.
     mp = Polygon(points)
 

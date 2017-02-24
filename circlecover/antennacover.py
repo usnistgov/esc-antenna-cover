@@ -1,5 +1,3 @@
-
-
 # This software was developed by employees of the National Institute
 # of Standards and Technology (NIST), an agency of the Federal
 # Government. Pursuant to title 17 United States Code Section 105, works
@@ -43,6 +41,7 @@ from shapely.geometry import MultiPoint
 from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely import affinity
+from collections import namedtuple
 
 
 logger = logging.getLogger("circlecover")
@@ -75,7 +74,8 @@ def read_detection_coverage(fileName):
         max_distance_covered = np.max(coverage) 
         coverage_polygon = Polygon(thiscover)
         # Attach it as a tuple of < max_distance_covered, coverage_polygon  >
-        results.append((max_distance_covered,coverage_polygon))
+        cp  = namedtuple("cp",["max_coverage", "coverage_area"])
+        results.append(cp(max_distance_covered,coverage_polygon))
     # Sort the points by max extent. This allows us to do a binary search
     # to find the detection coverage.
     results = sorted(results,key=lambda x : x[0])
@@ -274,13 +274,14 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     
     antenna_coverage = []
 
+    cvg = namedtuple("cvg",["center","index","angle"])
     for i in range(0,len(covered_point_sets)):
         points_to_cover = covered_point_sets[i]
         radius = cover[i].get_radius()
         center = cover[i].get_center()
         coverage = find_antenna_overlay_for_points(points_to_cover, center, radius, antenna_cover_patterns,float(antenna_angle)/float(180) * math.pi)
         # Return a set of triples - (center,index,angle) where index is the index into the coverage map.
-        antenna_coverage = antenna_coverage +  [(center,c[0],c[1])  for (k,c) in enumerate(coverage)]
+        antenna_coverage = antenna_coverage +  [cvg(center,c[0],c[1])  for (k,c) in enumerate(coverage)]
 
 
     return antenna_coverage
