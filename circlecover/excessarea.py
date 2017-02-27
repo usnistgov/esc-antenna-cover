@@ -8,6 +8,20 @@ import copy
 import pdb
 from collections import namedtuple
 
+def generate_bounding_polygon(possible_centers,interference_contour):
+    """ generate a bounding polygon consisting of possible_centers and interference_contour points. """
+    centers = copy.copy(possible_centers)
+    # Create a multipoint polygon coonsisting of the original contour 
+    # and the possible centers
+    points = [point for point in interference_contour]
+    # The centers and the shore points are listed in the same sorted order
+    centers.reverse()
+    for point in centers:
+        points.append(point)
+    # The polygon encloses the interference contour as well as the shore.
+    # This is the region that needs to be covered.
+    mp = Polygon(points)
+    return mp
 
 def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
             possible_centers, interference_contour):
@@ -20,30 +34,24 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
         detection_coverage_file: The detection coverage file.
     """
 
-    def generate_bounding_polygon(possible_centers,interference_contour):
-        centers = copy.copy(possible_centers)
-        # Create a multipoint polygon coonsisting of the original contour 
-        # and the possible centers
-        points = [point for point in interference_contour]
-        # The centers and the shore points are listed in the same sorted order
-        centers.reverse()
-        for point in centers:
-            points.append(point)
-        # The polygon encloses the interference contour as well as the shore.
-        # This is the region that needs to be covered.
-        mp = Polygon(points)
-        return mp
 
 
     def generate_antenna_cover_polygons(indexes,angles,centres,detection_coverage):
         polygons = []
         for i in range(0,len(indexes)):
-            polygon = detection_coverage[indexes[i]].coverage_area
+            polygon = detection_coverage[indexes[i]].lobe
             angle = angles[i]
             center = centers[i]
             rotated_translated_polygon = antennacover.translate(antennacover.rotate(polygon,angle),center)
             polygons.append(rotated_translated_polygon)
         return polygons
+
+    def point_covered_by_lobe(point,antenna_cover_lobes):
+        for i in range(0,len(antenna_cover_lobes)):
+            if antenna_cover_lobes[i].contains(point):
+                return True
+        return False
+            
 
 
 
@@ -70,9 +78,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     union = antenna_cover_polygons[0]
     for i in range(1,len(antenna_cover_polygons)):
         union = union.union(antenna_cover_polygons[i])
-    # Construct a polygon consisting of the boundary of the shapes.
-    antenna_cover_polygon = Polygon(union.boundary)
-    minx,miny,maxx,maxy = antenna_cover_polygon.bounds
+    minx,miny,maxx,maxy = union.bounds
 
     # Generate a point set and classify.
     ndivs = 100
@@ -84,7 +90,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     for i in range(0,ndivs):
         for j in range(0,ndivs):
             p = Point(minx + i*deltax, miny + j*deltay)
-            if antenna_cover_polygon.contains(p) and not bounding_polygon.contains(p):
+            if point_covered_by_lobe(p,antenna_cover_polygons) and not bounding_polygon.contains(p):
                 # The point p is now either on sea or land.
                 d1 = interference_contour_linestring.distance(p)
                 d2 = possible_centers_linestring.distance(p)
