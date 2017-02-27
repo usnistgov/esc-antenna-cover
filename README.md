@@ -47,14 +47,16 @@ Note that an area is covered if it is within atleast one circle.
 
 ### Variable Radius Antenna Cover:
 
-Given a set of M points on a plane where multi antenna sensors can be centered and
-a set of N lines, construct a polygon including the M points and N lines.
-find the minimum area antenna cover for the polygon. That is
-find the azimuth angle and sensitivity of the antenna's centers (chosen from the M points)
-such that all the polygon thus defined is covered and the area
+Given a set of M points on a plane where multi-antenna sensors can be centered and
+a set of N lines defining an interference contour, construct a polygon including the M points and N lines.
+Find the minimum area antenna cover for the polygon. That is
+find the azimuth angle and sensitivity of the antennas placed on a subset of the M points
+such that the area of the polygon to be covered is entirely covered and the 
 excess area of the cover is minimized. For example:
 
 ![alt tag](figures/estuary_antenna_60.png)
+
+Note that each antenna has the same beam width (60 degrees in the diagram above).
 
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
