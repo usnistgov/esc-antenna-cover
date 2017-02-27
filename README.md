@@ -1,11 +1,40 @@
 ## Geometric Circle-cover
 
-Minimum circle cover from a set of center points covering a 
-set of lines , a set of points or an enclosed area. 
+Greedy minimum cover from a set of center points covering a region. 
 
-This package consists of three circle cover algorithms:
+
+
+### Fixed radius point cover:
+
+Scenario: Cover a set of critical points (AKA) knot points with sensors having identical isotropic antennas. Determine the following:
+
+- Placement of the sensors.
+- Calibration of the antennas (i.e. "optimum" detection radius. Note that in this case we assume
+    all antennas have the same detection radius).
+
+
+Absract problem statement:
+
+Given a set of M points on a plane where circles can be centered and
+a set of N Points which need to be covered by the circles,
+find the minimum area circle cover for the points. That is,
+find the fixed radius of the circles and the centers (chosen from the M points)
+such that all the N points are covered and the total area of the
+circles is minimized. For example:
+
+![alt tag](figures/estuary_fixedradiuspointcover.png)
+
+Note that a point covered if it is within a circle.
 
 ### Variable radius edge cover:
+
+Scenario: Cover a set of edges with sensors having isotropic antennas of variable sensitivity. Determine the following:
+
+- Placement of the sensors.
+- Antenna calibration.
+    (i.e. determine their "optimum" detection radius at each location where they are placed.)
+
+Absract problem statement:
 
 Given a set of M points on a plane where circles can be centered and
 a set of N line segments which need to be covered by the circles,
@@ -19,19 +48,15 @@ circles is minimized. For example:
 
 Note that a line segment is covered if no part of it is OUTSIDE a circle.
 
-### Fixed  radius point cover:
-Given a set of M points on a plane where circles can be centered and
-a set of N Points which need to be covered by the circles,
-find the minimum area circle cover for the points. That is,
-find the fixed radius of the circles and the centers (chosen from the M points)
-such that all the N points are covered and the total area of the
-circles is minimized. For example:
-
-![alt tag](figures/estuary_fixedradiuspointcover.png)
-
-Note that a point covered if it is within a circle.
-
 ### Variable  radius area cover:
+
+Scenario: Cover an area with with sensors having isotropic antennas of variable sensitivity. Determine the following:
+
+- Placement of the sensors.
+- Calibration of the antennas
+    (i.e. determine their "optimum" detection radius at each location where they are placed)
+
+Abstract problem statement:
 
 Given a set of M points on a plane where circles can be centered and
 a set of N lines, construct a polygon including the M points and N lines.
@@ -46,6 +71,15 @@ Note that an area is covered if it is within atleast one circle.
 
 
 ### Variable Radius Antenna Cover:
+
+Scenario: Cover an area given are with a set of sensors, each of which has multiple antennas all of the same 
+antenna aperture angle but with different sensitivities. Determine the following:
+
+- Placement of the sensors.
+- Orientation of the antennas (i.e. azimuth angle w.r.t. the horizontal).
+- Calibration of the antennas (i.e. "optimum" detection range of the antennas at each location where they are placed).
+
+Abstract problem statement:
 
 Given a set of M points on a plane where multi-antenna sensors can be centered and
 a set of N lines defining an interference contour, construct a polygon including the M points and N lines.
@@ -102,7 +136,11 @@ See circlecover/test
 
 Add the circle-cover/circlecover directory to your matlab path.
 
-See the documentation help min\_cover for usage.
+See the documentation help min\_circle\_cover for usage.
+
+##### Example 1: 
+
+Min area circle cover (isotropic antenna) invoked from MATLAB:
 
 See the example in circlecover/test/CircleCoverTest.m :
 
@@ -130,7 +168,7 @@ See the example in circlecover/test/CircleCoverTest.m :
 
     distance = 60;
 
-    [centers_x,centers_y,radius] = min_cover(esc_loc,ic,distance);
+    [centers_x,centers_y,radius] = min_circle_cover(esc_loc,ic,distance);
 
     disp('centers_x');
     disp(centers_x);

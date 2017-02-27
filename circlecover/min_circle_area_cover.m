@@ -1,4 +1,4 @@
-function  [centers_x,centers_y,radius] = min_cover(centers,ic, distance)
+function  [centers_x,centers_y,radius] = min_circle_area_cover(centers,ic, distance)
 % find the min area greedy cover given the possible centers
 % and interference contour.
 %
