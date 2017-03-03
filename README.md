@@ -90,7 +90,12 @@ excess area of the cover is minimized. For example:
 
 ![alt tag](figures/estuary_antenna_60.png)
 
-Note that each antenna has the same beam width (60 degrees in the diagram above).
+Note that each antenna has the same beam width (60 degrees in the diagram above). The covers are chosen from 
+a family of "concentric" coverage curves that are generated off line using an appropriate propagation model 
+(i.e. Free Space, Hata etc.) shown below:
+
+![alt tag](figures/DetectionCoverage_90deg.png)
+
 
 The target application for this code is ESC sensor placement and sensitivity
 tuning for 3.5 GHZ spectrum sharing.
@@ -168,7 +173,7 @@ See the example in circlecover/test/CircleCoverTest.m :
 
     distance = 60;
 
-    [centers_x,centers_y,radius] = min_circle_cover(esc_loc,ic,distance);
+    [centers_x,centers_y,radius] = min_isotropic_area_cover(esc_loc,ic,distance);
 
     disp('centers_x');
     disp(centers_x);

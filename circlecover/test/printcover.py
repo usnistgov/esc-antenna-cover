@@ -108,9 +108,9 @@ def printAntennaCover(testName, interference_contour,
                       possible_centers, cover, coverage_file, 
                       antenna_angle, min_separation):
     result = {}
-    angles =  [c.angle for c in cover  ]
-    indices = [c.index for c in cover   ]
-    centers = [c.center for c in cover   ]
+    centers = [c[0] for c in cover   ]
+    indices = [c[1] for c in cover   ]
+    angles =  [c[2] for c in cover  ]
     result["testName"] = testName
     result["possible_centers"] = possible_centers
     result["cover_centers"] =  centers
@@ -129,7 +129,7 @@ def printAntennaCover(testName, interference_contour,
     outputFile = testName + ".txt"
     if not os.path.exists("test-results") :
         os.mkdir("test-results")
-    output_file = testName + "AntennaCover.txt"
+    output_file = testName + "AntennaCover." + str(antenna_angle) + ".txt"
     f = open("test-results/" + output_file,"w")
     to_write = json.dumps(result,indent=4)
     f.write(to_write)

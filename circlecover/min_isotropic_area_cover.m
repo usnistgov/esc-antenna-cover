@@ -1,12 +1,13 @@
-function  [centers_x,centers_y,radius] = min_circle_area_cover(centers,ic, distance)
+function  [centers_x,centers_y,radius] = min_isotropic_area_cover(centers,ic, distance)
 % find the min area greedy cover given the possible centers
 % and interference contour.
 %
 % parameters:
 %
-%
+% centers: A Mx2 matrix giving the possible locations where sensors can be placed (i.e. the 
+%    locations on the shore).
 % ic : interference contour Kx2 matrix giving the points defining the
-%      interference contour.
+%      interference contour.In general K != M.
 % distance: minimum placement separation
 %
 % returns:

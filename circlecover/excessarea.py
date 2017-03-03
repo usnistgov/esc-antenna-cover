@@ -23,6 +23,18 @@ def generate_bounding_polygon(possible_centers,interference_contour):
     mp = Polygon(points)
     return mp
 
+def generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage):
+    """ Generate the antenna cover rotated set of polygons """
+    polygons = []
+    for i in range(0,len(indexes)):
+        polygon = detection_coverage[indexes[i]].lobe
+        angle = angles[i]
+        center = centers[i]
+        rotated_translated_polygon = antennacover.translate(antennacover.rotate(polygon,angle),center)
+        polygons.append(rotated_translated_polygon)
+    return polygons
+
+
 def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
             possible_centers, interference_contour):
     """
@@ -35,25 +47,12 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     """
 
 
-
-    def generate_antenna_cover_polygons(indexes,angles,centres,detection_coverage):
-        polygons = []
-        for i in range(0,len(indexes)):
-            polygon = detection_coverage[indexes[i]].lobe
-            angle = angles[i]
-            center = centers[i]
-            rotated_translated_polygon = antennacover.translate(antennacover.rotate(polygon,angle),center)
-            polygons.append(rotated_translated_polygon)
-        return polygons
-
     def point_covered_by_lobe(point,antenna_cover_lobes):
         for i in range(0,len(antenna_cover_lobes)):
             if antenna_cover_lobes[i].contains(point):
                 return True
         return False
             
-
-
 
 
     # load the detection coverage file.

@@ -179,6 +179,8 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
     # note - second element of tuple is None. (Not a syntax error)
     index = bisect.bisect_left(detection_coverage,(radius*1.2,))
     if index >= len(detection_coverage):
+        print("radius " + str(radius*1.2))
+        print("max_detection_coverage " + str(detection_coverage[len(detection_coverage) -1][0]))
         raise Exception("Antenna Pattern could not be found")
     # The unrotated antenna pattern
     antenna_pattern = detection_coverage[index].lobe
@@ -320,21 +322,21 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
     # of points, then we can eliminate it. We pick it to be 1/10 percent of the 
     # number of grid points (arbitrarily -- should be passed in as a parameter).
-    tolerance = .001*sum([len(t.covered_points) for t in antenna_coverage])
+    tolerance = .005*sum([len(t.covered_points) for t in antenna_coverage])
 
     print "tolerance ",tolerance
 
     # Now eliminate empty lobes.
     antenna_coverage.reverse()
-    Slobe = namedtuple("AntennaLobe",["center","index","angle"])
     retval = []  
     for i in range(0,len(antenna_coverage)):
-        if len(antenna_coverage[i].covered_points) >= tolerance:
+        if len(antenna_coverage[i].covered_points) > tolerance:
             print "covered_points ", len(antenna_coverage[i].covered_points)
-            retval.append(Slobe(antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle))
+            retval.append((antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle))
             
     # Return a list of tuples that indicates the coverage.
     return retval
         
+
 
 
