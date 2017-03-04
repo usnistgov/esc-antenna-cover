@@ -11,9 +11,15 @@ import copy
 class SimAnneal(Annealer):
 
     def covers(self,cover_polygons):
-        """ boolean to determine whether the collection of points is covered by the given set of lobes. 
-            If this returns True then a valid cover has been found. """
+        """ 
+
+        boolean to determine whether the collection of points is covered by the given set of lobes. 
+        If this returns True then a valid cover has been found. We allow a small amount of 
+        slop in the cover (.005%) to give the algorithm a chance to do better.
+
+        """
         not_covered_count = 0
+        # For each point in our grid, check to see if the point is covered by at least one lobe
         for point in self.points_to_check:
             covered = False
             for i in range(0,len(cover_polygons)):
@@ -24,50 +30,50 @@ class SimAnneal(Annealer):
                 not_covered_count = not_covered_count + 1
 
         ratio = float(not_covered_count) / float(len(self.points_to_check))
-        if float(not_covered_count) / float(len(self.points_to_check)) < .005:
-            return True
-        else:
-            return False
+        return ratio < .005
 
 
     def energy(self):
+        """ 
+        The energy function for the simulated annealing. 
+        This is called back by the simanneal function. 
+        """
         cover_polygons = self.cover_polygons
         union = cover_polygons[0]
         for i in range(1,len(cover_polygons)):
             union = union.union(cover_polygons[i])
         hull = union.convex_hull
         cost = hull.area
-        print "cost = ",cost
-        return cost
-                
-    def energy2(self,angles):
-        intersection_area = 0
-        cover_polygons = self.cover_polygons
-        for i in range(0,len(cover_polygons)):
-            for j in range(i+1,len(cover_polygons)):
-                if cover_polygons[i].intersects(cover_polygons[j]):
-                    intersection = cover_polygons[i].intersection(cover_polygons[j])
-                    intersection_area = intersection_area + intersection.area
-        cost =  math.INF if intersection_area == 0 else 1.0/intersection_area
-        print "cost = ",cost
         return cost
 
+
     def move(self):
+        """
+        The move function called back by the simanneal parent class.
+        """
         while True:
+            # Pick a random angle
             index = random.randint(0,len(self.indexes) - 1)
             sign = -1 if random.randint(0,1) == 0 else 1
-            delta_angle = 2*math.pi/180*sign
+            # Peturb the solution by one degree.
+            delta_angle = 1*math.pi/180*sign
             new_angle = delta_angle + self.state[index]
             new_angles = copy.copy(self.state)
             new_angles[index] = new_angle
+            # Generate the cover lobes.
             cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,new_angles,self.centers,self.detection_coverage)
             if (self.covers(cover_polygons)):
+                # if the cover is good then keep the new angles
                 self.state = new_angles
+                # keep the cover polygons.
                 self.cover_polygons = cover_polygons
                 break
 
 
     def get_result(self):     
+        """ 
+        Prune unecessary antenna lobes and retrieve the result.
+        """
         cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,self.state,self.centers,self.detection_coverage)
         # Now remove a polygon at a time and see if the cover criterion is met.
         indexes_to_remove = []
@@ -76,8 +82,7 @@ class SimAnneal(Annealer):
             if self.covers(newcover):
                 indexes_to_remove.append(i)
             
-            
-        print "indexes_to_remove ", indexes_to_remove
+        print ("indexes_to_remove " + str(indexes_to_remove))
         centers = [self.centers[i] for i in range(0,len(self.centers)) if i not in indexes_to_remove]
         indexes = [self.indexes[i] for i in range(0,len(self.indexes)) if  i not in indexes_to_remove]
         angles =  [self.state[i] for i in range(0,len(self.state)) if i not in indexes_to_remove]
@@ -109,6 +114,6 @@ class SimAnneal(Annealer):
                                     for j in range(0,ndivisions) 
                                         if self.bounding_polygon.contains(Point (minx+i*deltax, miny+j*deltay))]
         
-        self.steps = 500
+        self.steps = 1000
 
         
