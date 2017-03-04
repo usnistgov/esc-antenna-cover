@@ -1,3 +1,4 @@
+from simanneal import Annealer
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 import antennacover
@@ -6,48 +7,30 @@ import math
 import pdb
 import random
 import copy
-from scipy.optimize import basinhopping
 
+class SimAnneal(Annealer):
 
-class Annealer:
-
-    def covers(self,angles):
+    def covers(self,cover_polygons):
         """ boolean to determine whether the collection of points is covered by the given set of lobes. 
             If this returns True then a valid cover has been found. """
         not_covered_count = 0
-        
         for point in self.points_to_check:
             covered = False
-            for i in range(0,len(self.cover_polygons)):
-                if self.cover_polygons[i].contains(point):
+            for i in range(0,len(cover_polygons)):
+                if cover_polygons[i].contains(point):
                     covered = True
                     break
             if not covered:
                 not_covered_count = not_covered_count + 1
-                
+
         ratio = float(not_covered_count) / float(len(self.points_to_check))
-        print "ratio = ",ratio
         if float(not_covered_count) / float(len(self.points_to_check)) < .005:
             return True
         else:
             return False
 
 
-    def acceptTest(self,**kwargs):
-        """ Return true if our solution is valid and false otherwise. """
-        angles = kwargs["x_new"]
-        if  self.covers(angles) :
-            self.cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,angles,self.centers,self.detection_coverage)
-            self.angles = angles
-            return True
-        else:
-            old_angles = kwargs["x_old"]
-            self.cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,old_angles,self.centers,self.detection_coverage)
-            return False
-
-            
-
-    def cost_function1(self,angles):
+    def energy(self):
         cover_polygons = self.cover_polygons
         union = cover_polygons[0]
         for i in range(1,len(cover_polygons)):
@@ -57,7 +40,7 @@ class Annealer:
         print "cost = ",cost
         return cost
                 
-    def cost_function2(self,angles):
+    def energy2(self,angles):
         intersection_area = 0
         cover_polygons = self.cover_polygons
         for i in range(0,len(cover_polygons)):
@@ -69,21 +52,36 @@ class Annealer:
         print "cost = ",cost
         return cost
 
-    def takeStep(self,angles):
-        index = random.randint(0,len(self.indexes) - 1)
-        sign = -1 if random.randint(0,1) == 0 else 1
-        delta_angle = math.pi/180*2*sign
-        new_angle = delta_angle + self.angles[index]
-        new_angles = copy.copy(self.angles)
-        new_angles[index] = new_angle
-        self.angles = new_angles
-        self.cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,new_angles,self.centers,self.detection_coverage)
-        return new_angles
+    def move(self):
+        while True:
+            index = random.randint(0,len(self.indexes) - 1)
+            sign = -1 if random.randint(0,1) == 0 else 1
+            delta_angle = 2*math.pi/180*sign
+            new_angle = delta_angle + self.state[index]
+            new_angles = copy.copy(self.state)
+            new_angles[index] = new_angle
+            cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,new_angles,self.centers,self.detection_coverage)
+            if (self.covers(cover_polygons)):
+                self.state = new_angles
+                self.cover_polygons = cover_polygons
+                break
 
 
-    def anneal(self):
-        basinhopping(self.cost_function1,self.angles,accept_test = self.acceptTest,take_step = self.takeStep)
-        return zip(self.centers,self.indexes,self.angles)
+    def get_result(self):     
+        cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,self.state,self.centers,self.detection_coverage)
+        # Now remove a polygon at a time and see if the cover criterion is met.
+        indexes_to_remove = []
+        for i in range(0,len(cover_polygons)):
+            newcover = [cover_polygons[k] for k in range(0,len(cover_polygons)) if k != i and k not in indexes_to_remove]
+            if self.covers(newcover):
+                indexes_to_remove.append(i)
+            
+            
+        print "indexes_to_remove ", indexes_to_remove
+        centers = [self.centers[i] for i in range(0,len(self.centers)) if i not in indexes_to_remove]
+        indexes = [self.indexes[i] for i in range(0,len(self.indexes)) if  i not in indexes_to_remove]
+        angles =  [self.state[i] for i in range(0,len(self.state)) if i not in indexes_to_remove]
+        return zip(centers,indexes,angles)
 
 
     def __init__(self,interference_contour, possible_centers, detection_coverage_file,cover):
@@ -91,11 +89,11 @@ class Annealer:
         self.possible_centers = possible_centers
         self.centers = [c[0] for c in cover   ]
         self.indexes = [c[1] for c in cover   ]
-        self.angles =  [c[2] for c in cover  ]
+        self.state =  [c[2] for c in cover  ]
         # load the detection coverage file.
         self.detection_coverage = antennacover.read_detection_coverage(detection_coverage_file)
         # the polygons representing the antenna shapes (rotated and translated)
-        self.cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,self.angles,self.centers,self.detection_coverage)
+        self.cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,self.state,self.centers,self.detection_coverage)
         # The bounding polygon consisting of the shore and the interference contour.
         self.bounding_polygon = excessarea.generate_bounding_polygon(possible_centers,interference_contour)
         # Take the union of these shapes
@@ -111,5 +109,6 @@ class Annealer:
                                     for j in range(0,ndivisions) 
                                         if self.bounding_polygon.contains(Point (minx+i*deltax, miny+j*deltay))]
         
+        self.steps = 500
 
         

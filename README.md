@@ -81,26 +81,36 @@ antenna aperture angle but with different sensitivities. Determine the following
 
 Abstract problem statement:
 
-Given a set of M points on a plane where multi-antenna sensors can be centered and
-a set of N lines defining an interference contour, construct a polygon including the M points and N lines.
-Find the minimum area antenna cover for the polygon. That is
-find the azimuth angle and sensitivity of the antennas placed on a subset of the M points
-such that the area of the polygon to be covered is entirely covered and the 
-excess area of the cover is minimized. For example:
+Given a set of M points on a plane where multi-antenna sensors can
+be centered and a set of N lines defining an interference contour,
+construct a polygon including the M points and N lines.  Find the minimum
+area antenna cover for the polygon. That is find the azimuth angle and
+sensitivity of the antennas placed on a subset of the M points such
+that the area of the polygon to be covered is entirely covered and the
+excess area of the cover is minimized. 
+
+Here is an example of a test run:
 
 ![alt tag](figures/estuary_antenna_60.png)
 
-Note that each antenna has the same beam width (60 degrees in the diagram above). The covers are chosen from 
-a family of "concentric" coverage curves that are generated off line using an appropriate propagation model 
-(i.e. Free Space, Hata etc.) shown below:
+Note that each antenna has the same beam width (60 degrees in the diagram
+above). The covers are chosen from a family of "concentric" coverage
+curves that are generated off line using an appropriate propagation model
+(i.e. Free Space, Hata etc.) shown below is the pattern for free space
+propagation loss:
 
 ![alt tag](figures/DetectionCoverage_90deg.png)
 
+The antenna cover may be imporoved after minimizing the excess area and removing redundant lobes. This is achieved through 
+simulated annealing.  We allow a small amount of "slop"
+(e.g. .05% of area uncovered).The results are shown below (note that the area is not entirely covered):
 
-The target application for this code is ESC sensor placement and sensitivity
-tuning for 3.5 GHZ spectrum sharing.
+![alt tag](figures/estuaryanneal_antenna_60.png)
+
 
 A matlab wrapper for the main python functionality is included.
+The target application for this code is ESC sensor placement and sensitivity
+tuning for 3.5 GHZ spectrum sharing.
 
 
 ## Installing the code

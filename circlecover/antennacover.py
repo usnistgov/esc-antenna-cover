@@ -177,7 +177,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
     radius = furthest_point_tuple[1]
     min_angle = min([angle(center,p) for p in convex_hull])
     # note - second element of tuple is None. (Not a syntax error)
-    index = bisect.bisect_left(detection_coverage,(radius*1.2,))
+    index = bisect.bisect_left(detection_coverage,(radius*1.4,))
     if index >= len(detection_coverage):
         print("radius " + str(radius*1.2))
         print("max_detection_coverage " + str(detection_coverage[len(detection_coverage) -1][0]))
@@ -274,25 +274,46 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
     """
 
-    def intersect_circle_with_points(circle,point_set):
-        """ Find the subset of points within 1.2 radius of the circle and return the intersection and difference"""
-        newcircle = ccle.Circle(circle.get_center(), circle.get_radius()*1.2)
-        points_to_include = [p for p in point_set if newcircle.inside(p)]
-        for p in points_to_include:
-            point_set.remove(p)
-        return points_to_include,point_set
-
-    
         
 
     centers = copy.copy(possible_centers)
     antenna_cover_patterns = read_detection_coverage(antenna_cover_file)
     # Find the min circle cover.
-    cover,covered_point_sets = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
+    cover,covered_points = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
     
-    antenna_coverage = []
+    bounding_polygon = excessarea.generate_bounding_polygon(centers,interference_contour)
+    minx,miny,maxx,maxy = bounding_polygon.bounds
+    ndivisions = 100
+    deltax = float(maxx - minx) / float(ndivisions)
+    deltay = float(maxy - miny) / float(ndivisions)
+    points_to_check = [(minx+i*deltax, miny+j*deltay) 
+                            for i in range(0,ndivisions) 
+                                for j in range(0,ndivisions) 
+                                    if bounding_polygon.contains(Point(minx+i*deltax, miny+j*deltay))]
+        
+    num_points = len(points_to_check)
+    # we want to eliminate lobes that have a very small number of points included
+    # to eliminate the noise. If an antenna lobe covers less than tolerance number
+    # of points, then we can eliminate it. We pick it to be 1/10 percent of the 
+    # number of grid points (arbitrarily -- should be passed in as a parameter).
+    tolerance = .005*num_points
+    print "tolerance ",tolerance , " ", num_points
+    
+    covered_point_sets = []
+    for i in range(0,len(cover)):
+        cp = []
+        points_to_remove = []
+        for point in points_to_check:
+            if cover[i].inside(point):
+                cp.append(point)
+                points_to_remove.append(point)
+        covered_point_sets.append(cp)
+        for p in points_to_remove:
+            points_to_check.remove(p)
+                
 
     antenna_lobe = namedtuple("AntennaLobeExtended",["center","index","angle","lobe","covered_points"])
+    antenna_coverage = []
     for i in range(0,len(cover)):
         points_to_cover = covered_point_sets[i]
         radius = cover[i].get_radius()
@@ -309,22 +330,15 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         points_covered = antenna_coverage[i].covered_points
         for j in range(i+1,len(antenna_coverage)):
             lobe = antenna_coverage[j].lobe
-            points_to_move = []
+            points_to_remove = []
             for p in points_covered:
                 if lobe.contains(Point(p)):
-                    points_to_move.append(p)
-            for p in points_to_move:
+                    points_to_remove.append(p)
+            for p in points_to_remove:
                 antenna_coverage[j].covered_points.append(p)
                 antenna_coverage[i].covered_points.remove(p)
 
 
-    # we want to eliminate lobes that have a very small number of points included
-    # to eliminate the noise. If an antenna lobe covers less than tolerance number
-    # of points, then we can eliminate it. We pick it to be 1/10 percent of the 
-    # number of grid points (arbitrarily -- should be passed in as a parameter).
-    tolerance = .005*sum([len(t.covered_points) for t in antenna_coverage])
-
-    print "tolerance ",tolerance
 
     # Now eliminate empty lobes.
     antenna_coverage.reverse()

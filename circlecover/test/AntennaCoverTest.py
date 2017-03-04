@@ -15,6 +15,7 @@ from circle import Circle
 import printcover
 import antennacover
 import annealer
+import simannealer
 import operator
 from shapely.geometry import Polygon
 from shapely.geometry import Point
@@ -227,8 +228,41 @@ class AntennaCoverTest(unittest.TestCase):
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_60deg.txt",60,min_center_distance=min_ctr_dist)
-        annealr = annealer.Annealer(interference_contour, possible_centers, coverage_file,cover)
-        improved_cover = annealr.anneal()
+        testName = "Estuary"
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,coverage_file,60,min_center_distance=min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
+        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
+        annealr.anneal()
         testName = "EstuaryAnneal"
+        improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, interference_contour, possible_centers, improved_cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+
+    def testSFAnneal (self):
+        esc_loc_x = m_to_km([-2300850,-2297160,-2284680,-2283390,-2284800,-2289540,-2287620,-2287740,-2287620,-2291760,-2289540,-2283720,
+                                -2279730,-2254320,-2252430,-2253120,-2256900,-2273160,-2273970,-2273910])
+        esc_loc_y = m_to_km([1986840,1977120,1966620,1957680,1947570,1937730,1926720,1917720,1907880,1897830,1887360,1876560,
+                                1867620,1852470,1843620,1833720,1824660,1817640,1807710,1797930])
+        ship_loc_x = m_to_km([-2414875,-2401190,-2405002,-2406089,-2407670,-2402495,-2402056,-2400759,-2390693,-2394883,-2393517,
+                                -2394351,-2393072,-2396507,-2393492,-2394127,-2399780,-2396297,-2387368,-2387021])
+        ship_loc_y = m_to_km([2019979,2007266,2001267,1992909,1982826,1970152,1959565,1950068,1937330,1927338,1917048,1908072,
+                                1899767,1892623,1883306,1873335,1864772,1852304,1839577,1829662])
+
+        centers = []
+        for i in range(0,len(esc_loc_x)):
+            center = (esc_loc_x[i],esc_loc_y[i])
+            centers.append(center)
+        interference_contour = []
+        for i in range(0,len(ship_loc_x)):
+            p = (ship_loc_x[i],ship_loc_y[i])
+            interference_contour.append(p)
+
+        testName = "SanFrancisco"
+        min_ctr_dist = 60
+        coverage_file = "DetectionCoverage_60deg.txt"
+        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,60,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        testName = "SanFranciscoAnneal"
+        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr.anneal()
+        improved_cover = annealr.get_result()
+        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
