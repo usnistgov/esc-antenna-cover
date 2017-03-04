@@ -136,7 +136,7 @@ class AntennaCoverTest(unittest.TestCase):
         
 
 
-    def testEscCoverVB(self):
+    def testVB(self):
         # Convert all units to Km
         esc_loc_x =  [x/1000.0 for x in  [1771380,1769310,1769790,1768380,1767390,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]]
         esc_loc_y =  [y/1000.0 for y in [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]]
@@ -159,7 +159,7 @@ class AntennaCoverTest(unittest.TestCase):
         printcover.printAntennaCover(testName, line_endpoints, centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
 
 
-    def testEscCoverSF(self):
+    def testSF(self):
         esc_loc_x = m_to_km([-2300850,-2297160,-2284680,-2283390,-2284800,-2289540,-2287620,-2287740,-2287620,-2291760,-2289540,-2283720,
                                 -2279730,-2254320,-2252430,-2253120,-2256900,-2273160,-2273970,-2273910])
         esc_loc_y = m_to_km([1986840,1977120,1966620,1957680,1947570,1937730,1926720,1917720,1907880,1897830,1887360,1876560,
@@ -266,3 +266,31 @@ class AntennaCoverTest(unittest.TestCase):
         annealr.anneal()
         improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+
+    def testVBAnneal(self):
+        # Convert all units to Km
+        esc_loc_x =  [x/1000.0 for x in  [1771380,1769310,1769790,1768380,1767390,1764690,1762020,1759920,1753110,1741950,1752210,1757010,1761870,1768230,1772820,1777110,1781610,1786920,1793220]]
+        esc_loc_y =  [y/1000.0 for y in [1827030,1817070,1806990,1797090,1787100,1776840,1767270,1756950,1746690,1735050,1727220,1717290,1707360,1697370,1687320,1677450,1667400,1657350,1647360]]
+        ship_loc_x = [x/1000.0 for x in [1847012,1844913,1845660,1834150,1823280,1811715,1807512,1806671,1810710,1807769,1817910,1822503,1827218,1823623,1828432,1842183,1846928,1852378,1858591]]
+        ship_loc_y = [y/1000.0 for y in [1843636,1833617,1823583,1811442,1799284,1787072,1777140,1767066,1759078,1749183,1741311,1731358,1721401,1709309,1699318,1691518,1681523,1671542,1661589]]
+
+        centers = []
+        for i in range(0,len(esc_loc_x)):
+            center = (esc_loc_x[i],esc_loc_y[i])
+            centers.append(center)
+
+        interference_contour = []
+        for i in range(0,len(ship_loc_x)):
+            p = (ship_loc_x[i],ship_loc_y[i])
+            interference_contour.append(p)
+
+        testName = "VirginiaBeach"
+        min_ctr_dist = 60
+        coverage_file = "DetectionCoverage_60deg.txt"
+        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,60,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        testName = "VirginiaBeachAnneal"
+        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr.anneal()
+        improved_cover = annealr.get_result()
+        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,coverage_file,60,min_ctr_dist)

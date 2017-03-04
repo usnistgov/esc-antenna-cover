@@ -134,7 +134,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
         """ Find the subset of points covered by a rotated_antenna_pattern from a set of points_to_cover """
         return [point for point in points_to_cover if rotated_antenna_pattern.contains(Point(point))]
 
-    def find_antenna_overlay_greedy(rotated_antenna_patterns,center,hull_to_cover,cover_patterns):
+    def find_antenna_overlay_greedy(rotated_antenna_patterns,center,points_to_cover,cover_patterns):
         """
         Do a greedy overlay of the points included in a circle.
         """
@@ -145,7 +145,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
         # the maximum porion of the hull.
         for pattern in rotated_antenna_patterns:
             # find the portion of the hull covered by the lobe.
-            cover = find_cover(pattern[2],hull_to_cover)
+            cover = find_cover(pattern[2],points_to_cover)
             # track the maximum.
             if len(cover) > len(max_cover):
                 max_cover = cover
@@ -156,14 +156,14 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
             return cover_patterns
         # Remove the points from the hull.
         for point in max_cover:
-            hull_to_cover.remove(point)
+            points_to_cover.remove(point)
 
         # add our greedy lobe to the cover_patterns
         cover_patterns.append(max_pattern)
         # remove it from the set we are considering
         rotated_antenna_patterns.remove(max_pattern)
         # recursively solve problem for remaining points
-        return find_antenna_overlay_greedy(rotated_antenna_patterns,center,hull_to_cover,cover_patterns)
+        return find_antenna_overlay_greedy(rotated_antenna_patterns,center,points_to_cover,cover_patterns)
         
         
     # Compute convex hull of points to cover
@@ -175,9 +175,9 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
 
     furthest_point_tuple = max([(p,distance(center,p)) for p in convex_hull], key = lambda t:t[1])
     radius = furthest_point_tuple[1]
-    min_angle = min([angle(center,p) for p in convex_hull])
+    #min_angle = min([angle(center,p) for p in convex_hull])
     # note - second element of tuple is None. (Not a syntax error)
-    index = bisect.bisect_left(detection_coverage,(radius*1.4,))
+    index = bisect.bisect_left(detection_coverage,(radius*1.2,))
     if index >= len(detection_coverage):
         print("radius " + str(radius*1.2))
         print("max_detection_coverage " + str(detection_coverage[len(detection_coverage) -1][0]))
@@ -192,7 +192,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
     # These are rotated in increments of delta
     antenna_patterns_rotated = [(index,counter*delta_angle,translate(rotate(antenna_pattern,counter*delta_angle),center)) for counter in range(0,npatterns)]
     # get the greedy cover
-    lobe_patterns =   find_antenna_overlay_greedy(antenna_patterns_rotated,center,convex_hull,[])
+    lobe_patterns =   find_antenna_overlay_greedy(antenna_patterns_rotated,center,copy.copy(points_to_cover),[])
     lobe_covers = []
     # now track the points covered by each lobe.
     for pattern in lobe_patterns:

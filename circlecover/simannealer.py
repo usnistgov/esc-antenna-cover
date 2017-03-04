@@ -30,7 +30,8 @@ class SimAnneal(Annealer):
                 not_covered_count = not_covered_count + 1
 
         ratio = float(not_covered_count) / float(len(self.points_to_check))
-        return ratio < .005
+        # Check against the limit set before we started the optimzation.
+        return ratio < self.max_ratio
 
 
     def energy(self):
@@ -77,6 +78,8 @@ class SimAnneal(Annealer):
         cover_polygons = excessarea.generate_antenna_cover_polygons(self.indexes,self.state,self.centers,self.detection_coverage)
         # Now remove a polygon at a time and see if the cover criterion is met.
         indexes_to_remove = []
+        # loosen up our cover criterion a little
+        self.max_ratio = 2*self.max_ratio
         for i in range(0,len(cover_polygons)):
             newcover = [cover_polygons[k] for k in range(0,len(cover_polygons)) if k != i and k not in indexes_to_remove]
             if self.covers(newcover):
@@ -114,6 +117,17 @@ class SimAnneal(Annealer):
                                     for j in range(0,ndivisions) 
                                         if self.bounding_polygon.contains(Point (minx+i*deltax, miny+j*deltay))]
         
+        not_covered_count = 0
+        for point in self.points_to_check:
+            covered = False
+            for i in range(0,len(self.cover_polygons)):
+                if self.cover_polygons[i].contains(point):
+                    covered = True
+                    break
+            if not covered:
+                not_covered_count = not_covered_count + 1
+
+        self.max_ratio = max(float(not_covered_count) / float(len(self.points_to_check)),.005)
         self.steps = 1000
 
         

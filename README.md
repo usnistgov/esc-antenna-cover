@@ -103,7 +103,7 @@ propagation loss:
 
 The antenna cover may be imporoved after minimizing the excess area and removing redundant lobes. This is achieved through 
 simulated annealing.  We allow a small amount of "slop"
-(e.g. .05% of area uncovered).The results are shown below (note that the area is not entirely covered):
+(e.g. .05% of area can remain uncovered).The results are shown below:
 
 ![alt tag](figures/estuaryanneal_antenna_60.png)
 

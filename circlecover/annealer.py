@@ -1,3 +1,4 @@
+# Obsolete file -- pending deletion. Unfortunately did not work out too well.
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 import antennacover
