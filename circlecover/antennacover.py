@@ -40,6 +40,7 @@ from line import Line
 import logging
 import circlecover
 import copy
+import simannealer
 from shapely.geometry import MultiPoint
 from shapely.geometry import Point
 from shapely.geometry import Polygon
@@ -354,3 +355,16 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
 
 
+
+def min_antenna_area_cover_anneal(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0):
+    """
+    Min area antenna cover with simulated annealing optimization.
+    This function is a convenience function that calls min_area_antenna_cover_greedy to find the initial antenna cover
+    and calls the simulated annealing function to improve the cover. 
+    """
+
+    initial_cover = min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0)
+    annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+    annealr.anneal()
+    improved_cover = annealr.get_result()
+    return improved_cover

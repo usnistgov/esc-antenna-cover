@@ -54,8 +54,7 @@ function  [centers_x,centers_y,indexes,azimuth_angles] = min_isotropic_area_cove
         contour.append(pypoint);
     end;
   
-    result = py.antennacover.min_antenna_area_cover_greedy(pcenters, contour, antenna_cover_file, antenna_angle,  min_center_distance=0);
-
+    result = py.antennacover.min_antenna_area_cover_anneal(pcenters, contour, coverage_file, antenna_angle,  min_center_distance)
 
     rcenters = result{1};
     % 1 added to support MATLAB indexing.
