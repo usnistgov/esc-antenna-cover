@@ -1,0 +1,428 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{algorithm} % http://ctan.org/pkg/algorithms
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx    
+\usepackage{mathtools}
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+GAntenna Cover Algorithm
+\end_layout
+
+\begin_layout Section*
+Problem Statement
+\end_layout
+
+\begin_layout Standard
+Given the following:
+\end_layout
+
+\begin_layout Itemize
+An unlimited supply of sensors, each of which can have multiple antennas,
+ such that :
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+All antennas have the same aperture angle.
+\end_layout
+
+\begin_layout Itemize
+A sensor has at least one antenna.
+\end_layout
+
+\begin_layout Itemize
+A given sensor can have multiple antennas.
+ 
+\end_layout
+
+\begin_layout Itemize
+Each antenna belonging to a given sensor has the same sensitivity but each
+ antenna assigned to a sensor may have a different roatation (azimuth) angle.
+\end_layout
+
+\begin_layout Itemize
+Different sensors may have antennas having different sensitivities.
+\end_layout
+
+\begin_layout Itemize
+Sensors can each have different numbers of antennas.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+A set of 
+\shape italic
+possible_locations
+\shape default
+ in 2-d space where sensors may be placed sorted in z-order (also known
+ as Morton order).
+ Call the lines joining these points in order the 
+\shape italic
+Coastal Line
+\shape default
+ (CL).
+\end_layout
+
+\begin_layout Itemize
+An set of 
+\shape italic
+interference_knot_points
+\shape default
+ sorted in z-order.
+ Call the lines joining these points the 
+\shape italic
+Interference Contour
+\shape default
+ (IC).
+\end_layout
+
+\begin_layout Itemize
+CL and IC do not intersect.
+\end_layout
+
+\begin_layout Standard
+We call the simple polygon constructed by adding edges from the extremities
+ of IC to CL, the 
+\shape italic
+Coverage Region
+\shape default
+ (CR).
+ Our goal is to cover CR such that:
+\end_layout
+
+\begin_layout Itemize
+The the entire area of CR is covered to within a defined tolerance (i.e.
+ the tolerance is some small number < 1 denoting the fraction of the area
+ not covered by any antenna).
+\end_layout
+
+\begin_layout Itemize
+The region outside CR covered by the antennas is minimized.
+ We call this the 
+\shape italic
+Excess Region
+\shape default
+ (ER).
+\end_layout
+
+\begin_layout Itemize
+The total area of the cover (i.e.
+ the sum of all the areas covered by each antenna) is minimized.
+\end_layout
+
+\begin_layout Itemize
+No two sensors are closer to each other than some defined minimum distance
+ 
+\shape italic
+min_distance
+\end_layout
+
+\begin_layout Standard
+Determine the following:
+\end_layout
+
+\begin_layout Itemize
+Optimal placement of the sensors 
+\end_layout
+
+\begin_layout Itemize
+Orientation of the antennas (i.e.
+ azimuth angle with respoect to the horizontal).
+ 
+\end_layout
+
+\begin_layout Itemize
+Calibration of the antennas (i.e.
+ "optimum" detection range of the antennas at each location where they are
+ placed).
+ 
+\end_layout
+
+\begin_layout Section*
+Algorithm High Level Description
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Inputs
+\series default
+: 
+\end_layout
+
+\begin_layout Itemize
+The sorted set of 
+\shape italic
+possible_centers
+\end_layout
+
+\begin_layout Itemize
+The sorted set of 
+\shape italic
+interference_knot_points 
+\end_layout
+
+\begin_layout Itemize
+The 
+\shape italic
+min_distance
+\shape default
+ specifying the minimum separation between two sensors.
+\end_layout
+
+\begin_layout Itemize
+A family of concetric 
+\shape italic
+detection_coverage
+\shape default
+ curves definining the coverage regions for different antenna sensitivities
+ all oriented in the same direction.
+ These antenna curves are closed convex curves centered at 
+\shape italic
+(0,0)
+\shape default
+ that, in general do not pack into a circle without overlap.
+ 
+\end_layout
+
+\begin_layout Paragraph
+Algorithm
+\end_layout
+
+\begin_layout Enumerate
+Construct the 
+\shape italic
+coverage_region
+\shape default
+ (CR):
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Constuct a multi-line segment consisting of the points in 
+\shape italic
+possible_centers
+\shape default
+ joined in order.
+\end_layout
+
+\begin_layout Enumerate
+Construct a multi-line segment consisting of the 
+\shape italic
+interference_knot_points
+\shape default
+ joined in order.
+\end_layout
+
+\begin_layout Enumerate
+Complete the simple polygon to generate CR.
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Generate a rectangular grid of points such that each point of the grid is
+ entirely within the region CR.
+ ( We start with some default grid spacing.
+ This may be adjusted in subsequent steps.) We call the grid of points thus
+ generated the 
+\shape italic
+interference_set
+\shape default
+.
+\end_layout
+
+\begin_layout Enumerate
+Generate a greedy circle cover (isotropic antenna) for 
+\shape italic
+(possible_centers, interference_set, minum_separation) 
+\shape default
+using algorithm 
+\shape italic
+min_area_cover_greedy
+\shape default
+.
+ This returns a set of centers chosen from 
+\shape italic
+possible_centers
+\shape default
+ and a set of radii of circles that cover the
+\shape italic
+ interference_set
+\shape default
+ such that antennas are spaced apart by at least 
+\shape italic
+min_distance
+\shape default
+ and the set of circles completely covers 
+\shape italic
+interference_set
+\end_layout
+
+\begin_layout Enumerate
+Place the antenna lobes (chosen from 
+\shape italic
+detection_coverage
+\shape default
+ ) within the circles returned from step 3 such that the antenna lobes completel
+y cover the intersection area between the circles and CR using algorithm
+ 
+\shape italic
+find_antenna_overlay_for_sector
+\shape default
+.
+ 
+\end_layout
+
+\begin_layout Enumerate
+Using simulated annealing with a cost function defined as the area of the
+ convex hull of the cover, rotate the antenna cover lobes on their assigned
+ sensors so that the cost function is minimized.
+\end_layout
+
+\begin_layout Enumerate
+Eliminate redundant antenna lobes.
+\end_layout
+
+\begin_layout Standard
+We now present the non-obvious steps in greater detail:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+include{algo}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Pictorially, after step 3, we achieve the following circle cover.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename /home/mranga/circle-cover/figures/estuary_areacover.png
+	lyxscale 75
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The detection_coverage curves are depicted pictorially as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename /home/mranga/circle-cover/figures/DetectionCoverage_60deg.png
+	lyxscale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+After overlaying the detection coverage curves on the circle_cover and overlayin
+g, we get the following result.
+ Note that small regions are uncovered because we eliminate lobes that cover
+ less than threshold points on our interference_set :
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename /home/mranga/circle-cover/figures/estuary_antenna_60.png
+	lyxscale 75
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+After applying simulated annealing on the figure above, we get:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename /home/mranga/circle-cover/figures/estuaryanneal_antenna_60.png
+	lyxscale 75
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

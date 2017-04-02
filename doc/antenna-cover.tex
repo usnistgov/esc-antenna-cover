@@ -1,0 +1,144 @@
+%% LyX 2.0.8.1 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{graphicx}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+%% A simple dot to overcome graphicx limitations
+\newcommand{\lyxdot}{.}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\usepackage{algorithm} % http://ctan.org/pkg/algorithms
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx    
+\usepackage{mathtools}
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+
+\makeatother
+
+\usepackage{babel}
+\begin{document}
+
+\title{GAntenna Cover Algorithm}
+
+\maketitle
+
+\section*{Problem Statement}
+
+Given the following:
+\begin{itemize}
+\item An unlimited supply of sensors, each of which can have multiple antennas,
+such that :
+
+\begin{itemize}
+\item All antennas have the same aperture angle.
+\item A sensor has at least one antenna.
+\item A given sensor can have multiple antennas. 
+\item Each antenna belonging to a given sensor has the same sensitivity
+but each antenna assigned to a sensor may have a different roatation
+(azimuth) angle.
+\item Different sensors may have antennas having different sensitivities.
+\item Sensors can each have different numbers of antennas.
+\end{itemize}
+\item A set of \textit{possible\_locations} in 2-d space where sensors may
+be placed sorted in z-order (also known as Morton order). Call the
+lines joining these points in order the \textit{Coastal Line} (CL).
+\item An set of \textit{interference\_knot\_points} sorted in z-order. Call
+the lines joining these points the \textit{Interference Contour} (IC).
+\item CL and IC do not intersect.
+\end{itemize}
+We call the simple polygon constructed by adding edges from the extremities
+of IC to CL, the \textit{Coverage Region} (CR). Our goal is to cover
+CR such that:
+\begin{itemize}
+\item The the entire area of CR is covered to within a defined tolerance
+(i.e. the tolerance is some small number < 1 denoting the fraction
+of the area not covered by any antenna).
+\item The region outside CR covered by the antennas is minimized. We call
+this the \textit{Excess Region} (ER).
+\item The total area of the cover (i.e. the sum of all the areas covered
+by each antenna) is minimized.
+\item No two sensors are closer to each other than some defined minimum
+distance \textit{min\_distance}
+\end{itemize}
+Determine the following:
+\begin{itemize}
+\item Optimal placement of the sensors 
+\item Orientation of the antennas (i.e. azimuth angle with respoect to the
+horizontal). 
+\item Calibration of the antennas (i.e. \textquotedbl{}optimum\textquotedbl{}
+detection range of the antennas at each location where they are placed). 
+\end{itemize}
+
+\section*{Algorithm High Level Description}
+
+\textbf{Inputs}: 
+\begin{itemize}
+\item The sorted set of \textit{possible\_centers}
+\item The sorted set of \textit{interference\_knot\_points }
+\item The \textit{min\_distance} specifying the minimum separation between
+two sensors.
+\item A family of concetric \textit{detection\_coverage} curves definining
+the coverage regions for different antenna sensitivities all oriented
+in the same direction. These antenna curves are closed convex curves
+centered at \textit{(0,0)} that, in general do not pack into a circle
+without overlap. 
+\end{itemize}
+
+\paragraph{Algorithm}
+\begin{enumerate}
+\item Construct the \textit{coverage\_region} (CR):
+
+\begin{enumerate}
+\item Constuct a multi-line segment consisting of the points in \textit{possible\_centers}
+joined in order.
+\item Construct a multi-line segment consisting of the \textit{interference\_knot\_points}
+joined in order.
+\item Complete the simple polygon to generate CR.
+\end{enumerate}
+\item Generate a rectangular grid of points such that each point of the
+grid is entirely within the region CR. ( We start with some default
+grid spacing. This may be adjusted in subsequent steps.) We call the
+grid of points thus generated the \textit{interference\_set}.
+\item Generate a greedy circle cover (isotropic antenna) for \textit{(possible\_centers,
+interference\_set, minum\_separation) }using algorithm \textit{min\_area\_cover\_greedy}.
+This returns a set of centers chosen from \textit{possible\_centers}
+and a set of radii of circles that cover the\textit{ interference\_set}
+such that antennas are spaced apart by at least \textit{min\_distance}
+and the set of circles completely covers \textit{interference\_set}
+\item Place the antenna lobes (chosen from \textit{detection\_coverage}
+) within the circles returned from step 3 such that the antenna lobes
+completely cover the intersection area between the circles and CR
+using algorithm \textit{find\_antenna\_overlay\_for\_sector}. 
+\item Using simulated annealing with a cost function defined as the area
+of the convex hull of the cover, rotate the antenna cover lobes on
+their assigned sensors so that the cost function is minimized.
+\item Eliminate redundant antenna lobes.
+\end{enumerate}
+We now present the non-obvious steps in greater detail:
+
+\include{algo}
+
+Pictorially, after step 3, we achieve the following circle cover.
+
+\includegraphics{/home/mranga/circle-cover/figures/estuary_areacover}
+
+The detection\_coverage curves are depicted pictorially as follows:
+
+\includegraphics{/home/mranga/circle-cover/figures/DetectionCoverage_60deg}
+
+After overlaying the detection coverage curves on the circle\_cover
+and overlaying, we get the following result. Note that small regions
+are uncovered because we eliminate lobes that cover less than threshold
+points on our interference\_set :
+
+\includegraphics{/home/mranga/circle-cover/figures/estuary_antenna_60}
+
+After applying simulated annealing on the figure above, we get:
+
+\includegraphics{/home/mranga/circle-cover/figures/estuaryanneal_antenna_60}
+\end{document}

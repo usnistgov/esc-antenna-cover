@@ -127,7 +127,7 @@ def translate(polygon, point):
     return affinity.translate(polygon,xoff=point[0],yoff=point[1])
 
 
-def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle):
+def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_coverage, antenna_angle):
     """
     Find the overlay pattern for antennas so they cover a sector.
     """
@@ -143,7 +143,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
         max_pattern = None
         # do a greedy search to find that pattern.
         # We find the lobe orientation that consumes
-        # the maximum porion of the hull.
+        # the maximum area of the hull.
         for pattern in rotated_antenna_patterns:
             # find the portion of the hull covered by the lobe.
             cover = find_cover(pattern[2],points_to_cover)
@@ -186,7 +186,7 @@ def find_antenna_overlay_for_points(points_to_cover, center, radius, detection_c
     # The unrotated antenna pattern
     antenna_pattern = detection_coverage[index].lobe
     # The number of patterns we allow around the circle.
-    npatterns = int(2*math.pi / antenna_angle) + 1
+    npatterns = 2*int(2*math.pi / antenna_angle) 
     # the increment of each angle
     delta_angle = 2*math.pi / npatterns
     # Generate a set of rotated patterns.
@@ -282,6 +282,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     # Find the min circle cover.
     cover,covered_points = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
     
+    # Generate a bounding polygon that inclues the interference contour and center locations.
     bounding_polygon = excessarea.generate_bounding_polygon(centers,interference_contour)
     minx,miny,maxx,maxy = bounding_polygon.bounds
     ndivisions = 100
@@ -295,7 +296,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     num_points = len(points_to_check)
     # we want to eliminate lobes that have a very small number of points included
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
-    # of points, then we can eliminate it. We pick it to be 1/10 percent of the 
+    # of points, then we can eliminate it. We pick it to be 1/20 percent of the 
     # number of grid points (arbitrarily -- should be passed in as a parameter).
     tolerance = .005*num_points
     print "tolerance ",tolerance , " ", num_points
@@ -319,7 +320,8 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         points_to_cover = covered_point_sets[i]
         radius = cover[i].get_radius()
         center = cover[i].get_center()
-        coverage = find_antenna_overlay_for_points(points_to_cover, center, radius, antenna_cover_patterns,float(antenna_angle)/float(180) * math.pi)
+        coverage = find_antenna_overlay_for_sector(points_to_cover, center, radius, 
+                            antenna_cover_patterns,float(antenna_angle)/float(180) * math.pi)
         # Return a set of triples - (center,index,angle) where index is the index into the coverage map.
         # c[0] is the index c[1] is the angle and c[2] the points covered by that lobe.
         antenna_coverage = antenna_coverage +  [antenna_lobe(center,c[0],c[1],c[2],c[3])  for (k,c) in enumerate(coverage)]
