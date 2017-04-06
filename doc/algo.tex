@@ -41,7 +41,7 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \While { $interference\_set$ is not $\emptyset$ }
 \State $(center,radius)$ := $find\_max\_min\_circle$ ( $interference\_set$, 
 \State \tab \tab \tab $possible\_centers$ )
-\State $covered\_points$ = \{ p : p $\in$ $interference\_set$ $\wedge$ p is inside circle(c,r) \}
+\State $covered\_points$ := \{ p : p $\in$ $interference\_set$ $\wedge$ p is inside circle(c,r) \}
 \State // Check if this center already exists in our cover
 \If {$\exists$ $(c,r_1)$ $\in$ $cover$ : c = $center$ }
 \State  	$circle\_cover$ := $circle\_cover$ - \{$(c,r_1)$\} $\cup$ \{$(c,max(radius,r_1))$\}
@@ -50,7 +50,8 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \EndIf
 \State // remove centers that are closer to the chosen center than $min\_distance$
 \State $possible\_centers$ := $possible\_centers$ - \{ c: c $\in$ $possible\_centers$ 
-\State \tab \tab \tab $\wedge$ \bf{euclidean\_distance}$(c,center)$ $le$ $min\_distance$ \}
+\State \tab \tab \tab $\wedge$ \bf{euclidean\_distance}$(c,center)$ $\le$ $min\_distance$ 
+\State \tab \tab \tab \}
 \State // Prune the interference set.
 \State $interference\_set$ := $interference\_set$ - $covered\_points$
 \EndWhile
@@ -77,12 +78,17 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \State \textbf{Procedure:}
 \State
 \State //The number of discrete angles to check.
-\State $npatterns$ := 2*(2*$\pi$ / $antenna\_angle$)
+\State // $incuded\_angle$ is the angle obtained by intersecting the 
+\State // $detection\_coverage\_lobe$ with the $circle((0,0),radius)$
+\State // $find\_slice\_angle$ finds this angle (not presented here).
+\State $included\_angle$ := \bf{find\_slice\_angle}$(radius,detection\_coverage\_lobe)$
+\State // We check for cover by rotating to a discrete set of points.
+\State $npatterns$ := \bf{int}(2*$\pi$ / $included\_angle$)
 \State $delta\_angle$ := 2*$\pi$ / $npatterns$
 \State // Rotate and translate the lobe to cover the sector 
 \State // increments of $delta\_angle$
 \State $rotated\_lobes$ = \{ (angle, lobe) :
-\State \tab \tab \tab  angle = k*$delta\_angles$ 
+\State \tab \tab \tab  $angle$ = k*$delta\_angles$ 
 \State \tab \tab \tab  $\wedge$ $lobe$ = \bf{rotate\_and\_translate}($detection\_coverage\_lobe$,
 \State \tab \tab \tab \tab \tab $center$,k*$delta\_angle$) 
 \State \tab \tab  \tab $\wedge$ (0 $\le$ k < $npatterns$) \}
