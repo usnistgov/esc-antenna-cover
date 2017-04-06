@@ -144,5 +144,5 @@ class SimAnneal(Annealer):
         # the maximum ratio defines the slop we are willing to tolerate in the optimized solution.
         self.max_ratio = max(float(not_covered_count) / float(len(self.points_to_check)),.005)
         # The number of steps the simulated annealer is supposed to run.
-        self.steps = 1000
+        self.steps = 2000
 

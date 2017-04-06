@@ -18,10 +18,10 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \State \tab \tab \tab                       $\wedge$ $p$  $\in$ $interference\_set$ 
 \State \tab \tab \tab                       $\wedge$ r = \bf{euclidean\_distance}($c$,$p$)
 \State \tab \tab \tab                       $\wedge$ r is minimal \} )
-\State $max\_min\_center$ := \bf{select} ( \{ $(c,p,r)$ :
+\State $max\_min\_circle$ := \bf{select} ( \{ $(c,r)$ :
 \State \tab \tab \tab 				      $(c,p,r)$ $\in$ $closest\_centers$ 
 \State \tab \tab \tab                     $\wedge$ $r$ is maximal \} )
-\State \Return $(max\_min\_center.c,max\_min\_center.r)$ 
+\State \Return $max\_min\_circle$ 
 \end{algorithmic}
 \end{algorithm}
 
@@ -48,12 +48,9 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \Else 
 \State 	$circle\_cover$ := $circle\_cover$ $\cup$ $(center,radius)$
 \EndIf
-\For{k $\in$ $possible\_centers$} 
-\State // Remove centers closer than $min\_distance$.
-\If {\bf{euclidean\_distance}$(k,c)$ $\le$ $min\_distance$} 
-\State $possible\_centers := possible\_centers - \{k\}$
-\EndIf
-\EndFor
+\State // remove centers that are closer to the chosen center than $min\_distance$
+\State $possible\_centers$ := $possible\_centers$ - \{ c: c $\in$ $possible\_centers$ 
+\State \tab \tab \tab $\wedge$ \bf{euclidean\_distance}$(c,center)$ $le$ $min\_distance$ \}
 \State // Prune the interference set.
 \State $interference\_set$ := $interference\_set$ - $covered\_points$
 \EndWhile
@@ -79,9 +76,9 @@ a circle centered at $c$ covers $p$ and has maximal radius among all such circle
 \State \tab \tab lobes that covers the sector.
 \State \textbf{Procedure:}
 \State
-\State //Determine the number of discrete angles to check.
-\State $npatterns$ = 2 * (2*$\pi$ / $antenna\_angle$ )
-\State $delta\_angle$ = 2*$\pi$ / $npatterns$
+\State //The number of discrete angles to check.
+\State $npatterns$ := 2*(2*$\pi$ / $antenna\_angle$)
+\State $delta\_angle$ := 2*$\pi$ / $npatterns$
 \State // Rotate and translate the lobe to cover the sector 
 \State // increments of $delta\_angle$
 \State $rotated\_lobes$ = \{ (angle, lobe) :

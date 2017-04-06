@@ -135,6 +135,15 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
         """ Find the subset of points covered by a rotated_antenna_pattern from a set of points_to_cover """
         return [point for point in points_to_cover if rotated_antenna_pattern.contains(Point(point))]
 
+    def find_subtended_angle(radius,pattern):
+        circ = ccle.Circle((0,0),radius)
+        geom = circ.get_geometry()
+        intersection = [ (p[0],p[1]) for p in list(geom.intersection(pattern).exterior.coords) ]
+        maxpoint = max(intersection, key = lambda x : x[1])
+        angle = math.atan2(maxpoint[1],maxpoint[0])
+        return 2*angle
+       
+
     def find_antenna_overlay_greedy(rotated_antenna_patterns,center,points_to_cover,cover_patterns):
         """
         Do a greedy overlay of the points included in a circle.
@@ -185,10 +194,15 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
         raise Exception("Antenna Pattern could not be found")
     # The unrotated antenna pattern
     antenna_pattern = detection_coverage[index].lobe
-    # The number of patterns we allow around the circle.
+    # The number of patterns we consider around
+    # the circle.  # pick a number that will generate enough lobes.
+    # the bigger this number, the more redundant lobes are generated and 
+    # longer the simulated annealer has to run.
+
     npatterns = 2*int(2*math.pi / antenna_angle) 
-    # the increment of each angle
     delta_angle = 2*math.pi / npatterns
+    #increment of angle we check in between.
+    # delta_angle = 2*math.pi / npatterns
     # Generate a set of rotated patterns.
     # These are rotated in increments of delta
     antenna_patterns_rotated = [(index,counter*delta_angle,translate(rotate(antenna_pattern,counter*delta_angle),center)) for counter in range(0,npatterns)]

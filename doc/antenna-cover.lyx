@@ -140,6 +140,7 @@ Interference Contour
 
 \begin_layout Itemize
 CL and IC do not intersect.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -153,7 +154,8 @@ Coverage Region
 \end_layout
 
 \begin_layout Itemize
-The the entire area of CR is covered to within a defined tolerance (i.e.
+The the entire area of CR is covered to within a defined outage tolerance
+ (i.e.
  the tolerance is some small number < 1 denoting the fraction of the area
  not covered by any antenna).
 \end_layout
