@@ -127,7 +127,7 @@ def translate(polygon, point):
     return affinity.translate(polygon,xoff=point[0],yoff=point[1])
 
 
-def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_coverage, antenna_angle):
+def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_coverage):
     """
     Find the overlay pattern for antennas so they cover a sector.
     """
@@ -229,7 +229,7 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
             
 
 
-def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0):
+def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
@@ -240,7 +240,6 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         interference_contour: A set of points denoting the boundary of the area that must be protected.
         antenna_cover_file: A file (generated offline using propagation modeling) 
                 which indicates the area covered by each antenna with the axis of the antenna horizontal.
-        antenna_angle : The aperture angle for the antenna.
         min_center_distance: The minimum distance between center locations that is permissible.
 
     Returns:
@@ -334,8 +333,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         points_to_cover = covered_point_sets[i]
         radius = cover[i].get_radius()
         center = cover[i].get_center()
-        coverage = find_antenna_overlay_for_sector(points_to_cover, center, radius, 
-                            antenna_cover_patterns,float(antenna_angle)/float(180) * math.pi)
+        coverage = find_antenna_overlay_for_sector(points_to_cover, center, radius, antenna_cover_patterns)
         # Return a set of triples - (center,index,angle) where index is the index into the coverage map.
         # c[0] is the index c[1] is the angle and c[2] the points covered by that lobe.
         antenna_coverage = antenna_coverage +  [antenna_lobe(center,c[0],c[1],c[2],c[3])  for (k,c) in enumerate(coverage)]
@@ -372,14 +370,14 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
 
 
-def min_antenna_area_cover_anneal(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0):
+def min_antenna_area_cover_anneal(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0):
     """
     Min area antenna cover with simulated annealing optimization.
     This function is a convenience function that calls min_area_antenna_cover_greedy to find the initial antenna cover
     and calls the simulated annealing function to improve the cover. 
     """
 
-    initial_cover = min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, antenna_angle,  min_center_distance=0)
+    initial_cover = min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, min_center_distance=0)
     annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
     annealr.anneal()
     improved_cover = annealr.get_result()

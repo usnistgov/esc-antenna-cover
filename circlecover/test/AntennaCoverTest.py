@@ -73,7 +73,7 @@ class AntennaCoverTest(unittest.TestCase):
         detection_coverage = antennacover.read_detection_coverage(coverage_file)
         coverage = antennacover.find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle)
 
-        printcover.printAntennaCircleCover("AntennaCircleCover",testCircle,coverage,coverage_file,points_to_cover)
+        printcover.printAntennaCircleCover("AntennaCircleCover",testCircle,coverage,coverage_file,60,points_to_cover)
 
         flag = True
         not_covered = 0
@@ -110,11 +110,10 @@ class AntennaCoverTest(unittest.TestCase):
 
         copy_of_points_to_cover = copy.copy(points_to_cover)
         #60 degrees antenna angle.
-        antenna_angle = math.pi/3
         coverage_file = "DetectionCoverage_60deg.txt"
         detection_coverage = antennacover.read_detection_coverage(coverage_file)
-        coverage = antennacover.find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle)
-        printcover.printAntennaCircleCover("AntennaCircleCover1",testCircle,coverage,coverage_file,points_to_cover)
+        coverage = antennacover.find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage)
+        printcover.printAntennaCircleCover("AntennaCircleCover1",testCircle,coverage,coverage_file,60,points_to_cover)
         flag = True
         not_covered = 0
         for point in copy_of_points_to_cover:
@@ -180,7 +179,7 @@ class AntennaCoverTest(unittest.TestCase):
 
         testName = "SanFrancisco"
         min_ctr_dist = 60
-        cover = antennacover.min_antenna_area_cover_greedy(centers,line_endpoints,"DetectionCoverage_60deg.txt",60,min_center_distance = min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,line_endpoints,"DetectionCoverage_60deg.txt",min_center_distance = min_ctr_dist)
         printcover.printAntennaCover(testName, line_endpoints, centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
 
 
@@ -192,7 +191,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_60deg.txt",60,min_center_distance=min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_60deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
 
@@ -204,7 +203,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_90deg.txt",90,min_center_distance=min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_90deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_90deg.txt",90,min_ctr_dist)
 
@@ -216,7 +215,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_120deg.txt",120,min_center_distance=min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_120deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_120deg.txt",120,min_ctr_dist)
 
@@ -229,7 +228,7 @@ class AntennaCoverTest(unittest.TestCase):
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
         testName = "Estuary"
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,coverage_file,60,min_center_distance=min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,coverage_file,min_center_distance=min_ctr_dist)
         printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
         annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
         annealr.anneal()
