@@ -135,13 +135,17 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
         """ Find the subset of points covered by a rotated_antenna_pattern from a set of points_to_cover """
         return [point for point in points_to_cover if rotated_antenna_pattern.contains(Point(point))]
 
-    def find_subtended_angle(radius,pattern):
+    def find_included_angle(radius,pattern):
+        """ determine the intersection angle between the extended lobe and the circle which it is covering """
         circ = ccle.Circle((0,0),radius)
         geom = circ.get_geometry()
-        intersection = [ (p[0],p[1]) for p in list(geom.intersection(pattern).exterior.coords) ]
-        maxpoint = max(intersection, key = lambda x : x[1])
-        angle = math.atan2(maxpoint[1],maxpoint[0])
-        return 2*angle
+        #intersection is the set of points in the lobe inside the circle. It represents an open arc.
+        intersection = [ (p[0],p[1],distance((0,0),(p[0],p[1]))) for p in list(geom.intersection(pattern).exterior.coords) if circ.inside(p) ]
+        # The point in the intersersection polygon inside the circle furthest away from the center
+        # Note that the lobe is convex and positioned horizontally.
+        maxtriple = max(intersection,  key = lambda x : x[2])
+        angle = max(math.fabs(math.atan2(maxtriple[1],maxtriple[0])),math.pi/180)
+        return angle
        
 
     def find_antenna_overlay_greedy(rotated_antenna_patterns,center,points_to_cover,cover_patterns):
@@ -194,17 +198,13 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
         raise Exception("Antenna Pattern could not be found")
     # The unrotated antenna pattern
     antenna_pattern = detection_coverage[index].lobe
-    # The number of patterns we consider around
-    # the circle.  # pick a number that will generate enough lobes.
-    # the bigger this number, the more redundant lobes are generated and 
-    # longer the simulated annealer has to run.
-
-    npatterns = 2*int(2*math.pi / antenna_angle) 
+    # determine angle for the intersection of circle with the lobe.
+    included_angle = find_included_angle(radius,antenna_pattern)
+    # The number of patterns (rounded to an integer)
+    npatterns = int(2*math.pi/included_angle)
+    # incremental rotation for each pattern.
     delta_angle = 2*math.pi / npatterns
-    #increment of angle we check in between.
-    # delta_angle = 2*math.pi / npatterns
-    # Generate a set of rotated patterns.
-    # These are rotated in increments of delta
+    # Generate a set of rotated patterns.These are rotated in increments of delta_angle
     antenna_patterns_rotated = [(index,counter*delta_angle,translate(rotate(antenna_pattern,counter*delta_angle),center)) for counter in range(0,npatterns)]
     # get the greedy cover
     lobe_patterns =   find_antenna_overlay_greedy(antenna_patterns_rotated,center,copy.copy(points_to_cover),[])
