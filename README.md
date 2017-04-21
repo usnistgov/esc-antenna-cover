@@ -151,7 +151,7 @@ See circlecover/test
 
 Add the circle-cover/circlecover directory to your matlab path.
 
-See the documentation help min\_circle\_cover for usage.
+See the documentation help min\_isotropic\_area\_cover for usage.
 
 ##### Example 1: 
 
@@ -191,6 +191,31 @@ See the example in circlecover/test/CircleCoverTest.m :
     disp(centers_y);
     disp('radius');
     disp(radius);
+
+### COMMAND LINE INTERFACE
+
+A command line interface to run the antenna cover and circle cover algorithms is provided. Here is an invocation example:
+
+
+    python compute_cover.py -pr test/InterfContour_WestCoast.txt -ap test/DetectionCoverage_60deg.txt -of WestCoast -dist 0
+
+
+The tool takes as inputs a detection coverage file and protection region (area bounded by interference boundary and shore).
+The output of this tool is a text file which may be read into matlab. 
+
+    center_x [ center x coordinates of the antennas ]
+    center_y [ center y coordinates of the antennas ]
+    indexes  [ indentifiers of the antenna lobes presented in DetectionCoverage ]
+    angles   [ azimuth orientations of the antenna lobes ]
+    sensor_loc_x [ sensor x coordinates ]
+    sensor_loc_y [ sensor y coordinates ]
+    sensor_count  
+    sea_excess_area
+    land_excess_area
+
+
+This information is also presented in a json file.
+
 
 
 
