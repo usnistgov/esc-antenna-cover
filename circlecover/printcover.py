@@ -97,8 +97,8 @@ def printAntennaCircleCover(testName,testCircle,cover,coverage_file,points_to_co
     result["detection_coverage_file"] = coverage_file
     convex_hull = list(MultiPoint(points_to_cover).convex_hull.exterior.coords)
     result["convex_hull"] = list(convex_hull)
-    output_file = testName + ".txt"
-    f = open("test-results/" + output_file,"w")
+    output_file = testName + ".json"
+    f = open(output_file,"w")
     to_write = json.dumps(result,indent=4)
     f.write(to_write)
     f.close()
@@ -126,15 +126,12 @@ def printAntennaCover(testName, interference_contour,
     result["sea_excess_area"] = sea_excess_area
     result["land_excess_area"] = land_excess_area
 
-    outputFile = testName + ".txt"
-    if not os.path.exists("test-results") :
-        os.mkdir("test-results")
-    output_file = testName + "AntennaCover." + str(antenna_angle) + ".txt"
-    f = open("test-results/" + output_file,"w")
+    output_file = testName + "AntennaCover." + str(antenna_angle) + ".json"
+    f = open(output_file,"w")
     to_write = json.dumps(result,indent=4)
     f.write(to_write)
     f.close()
-    
+
 
 
 def printCover(line_endpoints,cover,centers,min_separation,covered_segments,testName, algorithm):
@@ -142,16 +139,13 @@ def printCover(line_endpoints,cover,centers,min_separation,covered_segments,test
     Store the test results in a json formatted file for later viewing..
     """
     if algorithm == FIXED_RADIUS:
-        output_file = testName + '_F.txt'
+        output_file = testName + '_F.json'
     elif algorithm == VAR_RADIUS:
-        output_file = testName + '_V.txt'
+        output_file = testName + '_V.json'
     else:
-        output_file = testName + '_A.txt'
+        output_file = testName + '_A.json'
 
-    if not os.path.exists("test-results") :
-        os.mkdir("test-results")
-
-    f = open("test-results/" + output_file,"w")
+    f = open(output_file,"w")
     result = {}
     result["line_endpoints"] = line_endpoints
     lines = []
@@ -224,7 +218,11 @@ def show_results_for_antenna_circle_cover(fileName) :
     ax.set_xlim([xmin,xmax])
     ax.set_ylim([ymin,ymax])
     
-    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    if os.path.dirname(fileName) != '':
+        mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    else:
+        mpl.rcParams["savefig.directory"] = os.chdir("./")
+
     plt.show()
 
 def show_results_for_antenna_cover(fileName):
@@ -276,7 +274,10 @@ def show_results_for_antenna_cover(fileName):
             "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area)
     plt.suptitle(title)
     plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
-    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    if os.path.dirname(fileName) != '':
+        mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    else:
+        mpl.rcParams["savefig.directory"] = os.chdir("./")
     plt.show()
 
 
@@ -351,8 +352,10 @@ def show_results(fileName):
 
     plt.gcf().canvas.set_window_title(result["testName"] +  "_" + result["algorithm"])
 
-    mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
-
+    if os.path.dirname(fileName) != '':
+        mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
+    else:
+        mpl.rcParams["savefig.directory"] = os.chdir("./")
 
     
     plt.show()

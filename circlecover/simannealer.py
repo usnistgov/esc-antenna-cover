@@ -8,6 +8,8 @@ import pdb
 import random
 import copy
 
+NDIVISIONS=400
+
 class SimAnneal(Annealer):
 
     def covers(self,cover_polygons):
@@ -45,9 +47,8 @@ class SimAnneal(Annealer):
         union = cover_polygons[0]
         for i in range(1,len(cover_polygons)):
             union = union.union(cover_polygons[i])
-        hull = union.convex_hull
-        cost = hull.area
-        return cost
+
+        return union.area
 
 
     def move(self):
@@ -71,6 +72,8 @@ class SimAnneal(Annealer):
                 # keep the cover polygons.
                 self.cover_polygons = cover_polygons
                 break
+            else:
+                print "Rejecting state "
 
 
     def get_result(self):     
@@ -81,7 +84,6 @@ class SimAnneal(Annealer):
         # Now remove a polygon at a time and see if the cover criterion is met.
         indexes_to_remove = []
         # loosen up our cover criterion a little
-        self.max_ratio = 2*self.max_ratio
         for i in range(0,len(cover_polygons)):
             newcover = [cover_polygons[k] for k in range(0,len(cover_polygons)) if k != i and k not in indexes_to_remove]
             if self.covers(newcover):
@@ -123,7 +125,7 @@ class SimAnneal(Annealer):
         for i in range(1,len(self.cover_polygons)):
             union = union.union(self.cover_polygons[i])
         minx,miny,maxx,maxy = self.bounding_polygon.bounds
-        ndivisions = 100
+        ndivisions = NDIVISIONS
         deltax = float(maxx - minx) / float(ndivisions)
         deltay = float(maxy - miny) / float(ndivisions)
         # self.points_to_check is a grid of points in the bounding polygon of the protected region.

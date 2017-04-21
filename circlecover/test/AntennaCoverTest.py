@@ -286,10 +286,61 @@ class AntennaCoverTest(unittest.TestCase):
         testName = "VirginiaBeach"
         min_ctr_dist = 60
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,60,min_center_distance = min_ctr_dist)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
         printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
         testName = "VirginiaBeachAnneal"
         annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,coverage_file,60,min_ctr_dist)
+
+    def testEastCoastAnneal(self):
+        with open ("InterfContour_EastCoast.txt", "r") as myfile:
+            data=myfile.readlines()
+        esc_loc_x = [x/1000.0 for x in  eval(data[0])]
+        esc_loc_y = [x/1000.0 for x in  eval(data[1])]
+        ship_loc_x = [x/1000.0 for x in  eval(data[2])]
+        ship_loc_y = [x/1000.0 for x in  eval(data[3])]
+        centers = []
+        for i in range(0,len(esc_loc_x)):
+            center = (esc_loc_x[i],esc_loc_y[i])
+            centers.append(center)
+
+        interference_contour = []
+        for i in range(0,len(ship_loc_x)):
+            p = (ship_loc_x[i],ship_loc_y[i])
+            interference_contour.append(p)
+
+        testName = "EastCoast"
+        min_ctr_dist = 0
+        coverage_file = "DetectionCoverage_60deg.txt"
+        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        testName = "EastCoastAnneal"
+        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr.anneal()
+        improved_cover = annealr.get_result()
+        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,coverage_file,60,min_ctr_dist)
+        
+    def testEastCoastAnneal1(self):
+        with open ("InterfContour_EastCoast.txt", "r") as myfile:
+            data=myfile.readlines()
+        esc_loc_x = [x/1000.0 for x in  eval(data[0])]
+        esc_loc_y = [x/1000.0 for x in  eval(data[1])]
+        ship_loc_x = [x/1000.0 for x in  eval(data[2])]
+        ship_loc_y = [x/1000.0 for x in  eval(data[3])]
+        centers = []
+        for i in range(0,len(esc_loc_x)):
+            center = (esc_loc_x[i],esc_loc_y[i])
+            centers.append(center)
+
+        interference_contour = []
+        for i in range(0,len(ship_loc_x)):
+            p = (ship_loc_x[i],ship_loc_y[i])
+            interference_contour.append(p)
+
+        testName = "EastCoast"
+        min_ctr_dist = 0
+        coverage_file = "DetectionCoverage_60deg.txt"
+        cover = antennacover.min_antenna_area_cover_anneal(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
