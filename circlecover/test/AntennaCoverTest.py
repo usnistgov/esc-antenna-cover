@@ -225,6 +225,7 @@ class AntennaCoverTest(unittest.TestCase):
         """
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
+        antennacover.NDIVISIONS = 200
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
         testName = "Estuary"

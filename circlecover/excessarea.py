@@ -8,7 +8,6 @@ import copy
 import pdb
 from collections import namedtuple
 
-NDIVISIONS = 400
 def generate_bounding_polygon(possible_centers,interference_contour):
     """ generate a bounding polygon consisting of possible_centers and interference_contour points. """
     centers = copy.copy(possible_centers)
@@ -81,7 +80,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     minx,miny,maxx,maxy = union.bounds
 
     # Generate a point set and classify.
-    ndivs = NDIVISIONS
+    ndivs = antennacover.NDIVISIONS
     deltax,deltay = float(maxx-minx)/ndivs, float(maxy-miny)/ndivs
     area_per_grid_point = deltax*deltay
     

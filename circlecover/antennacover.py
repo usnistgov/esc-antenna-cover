@@ -207,7 +207,8 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
     # determine angle for the intersection of circle with the lobe.
     included_angle = find_included_angle(radius,antenna_pattern)
     # The number of patterns (rounded to an integer)
-    npatterns = int(2*math.pi/included_angle + 1)
+    npatterns = int(math.pi/included_angle)
+    print "npatterns = " , npatterns
     # incremental rotation for each pattern.
     delta_angle = 2*math.pi / npatterns
     # Generate a set of rotated patterns.These are rotated in increments of delta_angle
@@ -314,9 +315,9 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         
     # we want to eliminate lobes that have a very small number of points included
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
-    # of points, then we can eliminate it. We pick it to be 1/20 percent of the 
+    # of points, then we can eliminate it. We pick it to be 1/2 percent of the 
     # number of grid points (arbitrarily -- should be passed in as a parameter).
-    tolerance = .005*len(points_to_check)
+    tolerance = .001*len(points_to_check)
     print "tolerance ",tolerance , " grid size ", len(points_to_check)
     
     covered_point_sets = []
@@ -359,9 +360,31 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
                 antenna_coverage[j].covered_points.append(p)
                 antenna_coverage[i].covered_points.remove(p)
 
-
+    #sort the cover in ascending order of covered points.
+    antenna_coverage.sort(key = lambda x : len(x.covered_points))
 
     # Now eliminate empty lobes.
+    count = 0
+    indexes_to_delete = []
+    for i in range(0,len(antenna_coverage)):
+        count = count + len(antenna_coverage[i].covered_points)
+        if count < tolerance:
+            indexes_to_delete.append(i)
+        else:
+            break
+
+    print "indexes_to_delete ", indexes_to_delete
+
+    # Remove the nearly empty lobes.
+    for i in indexes_to_delete:
+        del antenna_coverage[i]
+
+    antenna_coverage = remove_overlapping_polygons(antenna_coverage,bounding_polygon)
+
+    # assemble the result.
+    retval = [ (antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle) for i in range(0,len(antenna_coverage))]
+
+    """
     antenna_coverage.reverse()
     # want to reject lobes that cover very few points.
     per_lobe_tolerance = max(tolerance/len(antenna_coverage),2)
@@ -370,53 +393,29 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         if len(antenna_coverage[i].covered_points) > per_lobe_tolerance:
             print "covered_points ", len(antenna_coverage[i].covered_points)
             retval.append((antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle))
+    """
     
     return retval
 
-def covers(antenna_coverage,points_to_check,tolerance):
-        not_covered_count = 0
-        # For each point in our grid, check to see if the point is covered by at least one lobe
-        for point in points_to_check:
-            covered = False
-            for i in range(0,len(antenna_coverage)):
-                if antenna_coverage[i].lobe.contains(Point(point)):
-                    covered = True
-                    break
-            if not covered:
-                not_covered_count = not_covered_count + 1
+def covers(antenna_coverage,bounding_polygon,tolerance):
+    union = antenna_coverage[0].lobe
+    for i in range(1,len(antenna_coverage)):
+        union = union.union(antenna_coverage[i].lobe)
+    diff = bounding_polygon.difference(union).area
+    return diff/bounding_polygon.area <= tolerance
 
-        # Check against the limit set before we started the optimzation.
-        return not_covered_count < tolerance
-
-def remove_overlapping_polygons(antenna_coverage,bounding_polygon,tolerance):     
+def remove_overlapping_polygons(antenna_coverage,bounding_polygon):     
     # Now remove a polygon at a time and see if the cover criterion is met.
     indexes_to_remove = []
-    minx,miny,maxx,maxy = bounding_polygon.bounds
-    ndivisions = NDIVISIONS
-    deltax = float(maxx - minx) / float(ndivisions)
-    deltay = float(maxy - miny) / float(ndivisions)
-    points_to_check = [(minx+i*deltax, miny+j*deltay) 
-                            for i in range(0,ndivisions) 
-                                for j in range(0,ndivisions) 
-                                    if bounding_polygon.contains(Point(minx+i*deltax, miny+j*deltay))]
-
-    not_covered_count = 0
-    # For each point in our grid, check to see if the point is covered by at least one lobe
-    for point in points_to_check:
-        covered = False
-        for i in range(0,len(antenna_coverage)):
-            if antenna_coverage[i].lobe.contains(Point(point)):
-                 covered = True
-                 break
-        if not covered:
-            not_covered_count = not_covered_count + 1
-
-    tolerance = not_covered_count
-    print "remove_overlapping_polygons ", tolerance
+    union = antenna_coverage[0].lobe
+    for i in range(1,len(antenna_coverage)):
+        union = union.union(antenna_coverage[i].lobe)
+    diff = bounding_polygon.difference(union).area
+    tolerance = diff/bounding_polygon.area 
 
     for i in range(0,len(antenna_coverage)):
         newcover = [antenna_coverage[k] for k in range(0,len(antenna_coverage)) if k != i and k not in indexes_to_remove]
-        if covers(newcover,points_to_check,tolerance):
+        if covers(newcover,bounding_polygon,tolerance):
             indexes_to_remove.append(i)
             
     print ("indexes_to_remove " + str(indexes_to_remove))
@@ -437,7 +436,7 @@ def min_antenna_area_cover_anneal(possible_centers, interference_contour, antenn
     cover = min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, min_center_distance=0)
 
     if anneal:
-        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
         annealr.anneal()
         cover = annealr.get_result()
 

@@ -8,7 +8,6 @@ import pdb
 import random
 import copy
 
-NDIVISIONS=400
 
 class SimAnneal(Annealer):
 
@@ -20,20 +19,13 @@ class SimAnneal(Annealer):
         slop in the cover (.005%) to give the algorithm a chance to do better.
 
         """
-        not_covered_count = 0
         # For each point in our grid, check to see if the point is covered by at least one lobe
-        for point in self.points_to_check:
-            covered = False
-            for i in range(0,len(cover_polygons)):
-                if cover_polygons[i].contains(point):
-                    covered = True
-                    break
-            if not covered:
-                not_covered_count = not_covered_count + 1
-
-        ratio = float(not_covered_count) / float(len(self.points_to_check))
-        # Check against the limit set before we started the optimzation.
-        return ratio < self.max_ratio
+        union = cover_polygons[0]
+        for i in range(1,len(cover_polygons)):
+            union = union.union(cover_polygons[i])
+        area = self.bounding_polygon.difference(union).area
+        ratio = area/self.bounding_polygon.area
+        return  ratio <= self.max_ratio
 
 
     def energy(self):
@@ -47,7 +39,6 @@ class SimAnneal(Annealer):
         union = cover_polygons[0]
         for i in range(1,len(cover_polygons)):
             union = union.union(cover_polygons[i])
-
         return union.area
 
 
@@ -56,8 +47,14 @@ class SimAnneal(Annealer):
         The move function called back by the simanneal parent class.
         """
         while True:
-            # Pick a random angle
-            index = random.randint(0,len(self.indexes) - 1)
+            # pick an intersecting polygon index
+            #pindex = random.randint(0, len(self.intersecting_polygons)-1)
+
+            # pindex = self.index_count % len(self.intersecting_polygons)
+            # index = self.intersecting_polygons[pindex]
+
+            # index = self.index_count % len(self.cover_polygons)
+            index = random.randint(0, len(self.cover_polygons)-1)
             sign = -1 if random.randint(0,1) == 0 else 1
             # Peturb the solution by one degree.
             delta_angle = 1*math.pi/180*sign
@@ -72,8 +69,7 @@ class SimAnneal(Annealer):
                 # keep the cover polygons.
                 self.cover_polygons = cover_polygons
                 break
-            else:
-                print "Rejecting state "
+            self.index_count = self.index_count + 1
 
 
     def get_result(self):     
@@ -92,7 +88,7 @@ class SimAnneal(Annealer):
         print ("indexes_to_remove " + str(indexes_to_remove))
         centers = [self.centers[i] for i in range(0,len(self.centers)) if i not in indexes_to_remove]
         indexes = [self.indexes[i] for i in range(0,len(self.indexes)) if  i not in indexes_to_remove]
-        angles =  [self.state[i] for i in range(0,len(self.state)) if i not in indexes_to_remove]
+        angles =  [self.best_state[i] for i in range(0,len(self.state)) if i not in indexes_to_remove]
         return zip(centers,indexes,angles)
 
 
@@ -125,10 +121,11 @@ class SimAnneal(Annealer):
         for i in range(1,len(self.cover_polygons)):
             union = union.union(self.cover_polygons[i])
         minx,miny,maxx,maxy = self.bounding_polygon.bounds
-        ndivisions = NDIVISIONS
+        ndivisions = antennacover.NDIVISIONS
         deltax = float(maxx - minx) / float(ndivisions)
         deltay = float(maxy - miny) / float(ndivisions)
         # self.points_to_check is a grid of points in the bounding polygon of the protected region.
+        """
         self.points_to_check = [Point (minx+i*deltax, miny+j*deltay) 
                                 for i in range(0,ndivisions) 
                                     for j in range(0,ndivisions) 
@@ -144,7 +141,16 @@ class SimAnneal(Annealer):
             if not covered:
                 not_covered_count = not_covered_count + 1
         # the maximum ratio defines the slop we are willing to tolerate in the optimized solution.
-        self.max_ratio = max(float(not_covered_count) / float(len(self.points_to_check)),.005)
-        # The number of steps the simulated annealer is supposed to run.
-        self.steps = 2000
+        """
+        area = self.bounding_polygon.difference(union).area
+        self.max_ratio = max(area/self.bounding_polygon.area,.005)
+        # Make a list of the polygons that intersect with the boundary.
+        # self.intersecting_polygons = [ i for (i,p) in enumerate(self.cover_polygons) if p.difference(self.bounding_polygon).area > self.bounding_polygon.area*.01]
+        self.index_count = 0
+        # let each boudary polygon see 30 moves (arbitrary).
+        self.steps = len(self.cover_polygons) * 200
+        if self.steps == 0 :
+            print "nothing to do"
+        else:
+            print "steps ", self.steps
 

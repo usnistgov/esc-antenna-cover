@@ -23,9 +23,7 @@ if __name__ == "__main__":
     min_ctr_dist = args.dist
     output_file = args.of
     grid_size = args.gs
-    excessarea.NDIVISIONS=grid_size
     antennacover.NDIVISIONS=grid_size
-    simannealer.NDIVISIONS=grid_size
     
     # Load up the data.
     with open (protection_region, "r") as myfile:
@@ -48,7 +46,13 @@ if __name__ == "__main__":
         interference_contour.append(p)
 
     testName = output_file
-    cover = antennacover.min_antenna_area_cover_anneal(possible_centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist,anneal = do_anneal)
+    cover = antennacover.min_antenna_area_cover_greedy(possible_centers, interference_contour, coverage_file, min_center_distance=min_ctr_dist)
+    printcover.printAntennaCover(output_file, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
+    if do_anneal:
+        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
+        annealr.anneal()
+        cover = annealr.get_result()
+        printcover.printAntennaCover(output_file + "Anneal", interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
 
     # Return a list of tuples that indicates the coverage.
     sensor_centers = list(set([c[0] for c in cover]))
@@ -75,4 +79,3 @@ if __name__ == "__main__":
     f.write(str(land_excess_area) + "\n")
     f.close()
 
-    printcover.printAntennaCover(output_file, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)

@@ -125,6 +125,9 @@ def printAntennaCover(testName, interference_contour,
             angles, centers, coverage_file, possible_centers, interference_contour)
     result["sea_excess_area"] = sea_excess_area
     result["land_excess_area"] = land_excess_area
+    sensor_centers = list(set([c[0] for c in cover]))
+    result["sensor_loc"] = sensor_centers
+    result["sensor_count"] = len(sensor_centers)
 
     output_file = testName + "AntennaCover." + str(antenna_angle) + ".json"
     f = open(output_file,"w")
@@ -270,8 +273,10 @@ def show_results_for_antenna_cover(fileName):
     antenna_aperture = result['antenna_aperture']
     land_excess_area = result["land_excess_area"]
     sea_excess_area = result["sea_excess_area"]
+    sensor_count = result["sensor_count"]
     title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture) +\
-            "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area)
+            "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area) +\
+            "\nsensor_count = " + str(sensor_count)
     plt.suptitle(title)
     plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
     if os.path.dirname(fileName) != '':
