@@ -92,7 +92,7 @@ class SimAnneal(Annealer):
         return zip(centers,indexes,angles)
 
 
-    def __init__(self,interference_contour, possible_centers, detection_coverage_file,cover,steps = 0):
+    def __init__(self,interference_contour, possible_centers, detection_coverage_file,cover,steps = 0,tol=.005):
         """
         Parameters:
             interference_contour : an ordered set of points that defines the interference contour. No loops are allowed. The 
@@ -120,34 +120,13 @@ class SimAnneal(Annealer):
         union = self.cover_polygons[0]
         for i in range(1,len(self.cover_polygons)):
             union = union.union(self.cover_polygons[i])
-        minx,miny,maxx,maxy = self.bounding_polygon.bounds
-        ndivisions = antennacover.NDIVISIONS
-        deltax = float(maxx - minx) / float(ndivisions)
-        deltay = float(maxy - miny) / float(ndivisions)
-        # self.points_to_check is a grid of points in the bounding polygon of the protected region.
-        """
-        self.points_to_check = [Point (minx+i*deltax, miny+j*deltay) 
-                                for i in range(0,ndivisions) 
-                                    for j in range(0,ndivisions) 
-                                        if self.bounding_polygon.contains(Point (minx+i*deltax, miny+j*deltay))]
-        # Check the number of points not covered by the given (unoptimized) cover
-        not_covered_count = 0
-        for point in self.points_to_check:
-            covered = False
-            for i in range(0,len(self.cover_polygons)):
-                if self.cover_polygons[i].contains(point):
-                    covered = True
-                    break
-            if not covered:
-                not_covered_count = not_covered_count + 1
-        # the maximum ratio defines the slop we are willing to tolerate in the optimized solution.
-        """
+        # The uncovered area.
         area = self.bounding_polygon.difference(union).area
-        self.max_ratio = max(area/self.bounding_polygon.area,.005)
-        # Make a list of the polygons that intersect with the boundary.
-        # self.intersecting_polygons = [ i for (i,p) in enumerate(self.cover_polygons) if p.difference(self.bounding_polygon).area > self.bounding_polygon.area*.01]
+        # max_ratio is the max allowable uncovered area as a fraction.
+        self.max_ratio = max(area/self.bounding_polygon.area,tol)
+        # The counter that allows us to step through the array of polygons repeatedly
         self.index_count = 0
-        # let each boudary polygon see 30 moves (arbitrary).
+        # The number of moves allowed.
         if steps == 0:
             self.steps = len(self.cover_polygons) * 50
         else:

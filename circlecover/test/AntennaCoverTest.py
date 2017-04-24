@@ -73,7 +73,7 @@ class AntennaCoverTest(unittest.TestCase):
         detection_coverage = antennacover.read_detection_coverage(coverage_file)
         coverage = antennacover.find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage, antenna_angle)
 
-        printcover.printAntennaCircleCover("AntennaCircleCover",testCircle,coverage,coverage_file,60,points_to_cover)
+        printcover._testPrintAntennaCircleCover("AntennaCircleCover",testCircle,coverage,coverage_file,60,points_to_cover)
 
         flag = True
         not_covered = 0
@@ -113,7 +113,7 @@ class AntennaCoverTest(unittest.TestCase):
         coverage_file = "DetectionCoverage_60deg.txt"
         detection_coverage = antennacover.read_detection_coverage(coverage_file)
         coverage = antennacover.find_antenna_overlay_for_points(points_to_cover, center, radius, detection_coverage)
-        printcover.printAntennaCircleCover("AntennaCircleCover1",testCircle,coverage,coverage_file,60,points_to_cover)
+        printcover._testPrintAntennaCircleCover("AntennaCircleCover1",testCircle,coverage,coverage_file,60,points_to_cover)
         flag = True
         not_covered = 0
         for point in copy_of_points_to_cover:

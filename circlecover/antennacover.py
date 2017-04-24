@@ -235,7 +235,7 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
             
 
 
-def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0):
+def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0,tol=.005):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
@@ -316,8 +316,8 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
     # of points, then we can eliminate it. We pick it to be 1/2 percent of the 
     # number of grid points (arbitrarily -- should be passed in as a parameter).
-    tolerance = .005*len(points_to_check)
-    print "tolerance ",tolerance , " grid size ", len(points_to_check)
+    tolerance = tol*len(points_to_check)
+    print "tolerance (grid_points) ",tolerance , " grid size ", len(points_to_check)
     
     covered_point_sets = []
     for i in range(0,len(cover)):
