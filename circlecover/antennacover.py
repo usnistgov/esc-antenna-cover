@@ -208,7 +208,6 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
     included_angle = find_included_angle(radius,antenna_pattern)
     # The number of patterns (rounded to an integer)
     npatterns = int(math.pi/included_angle)
-    print "npatterns = " , npatterns
     # incremental rotation for each pattern.
     delta_angle = 2*math.pi / npatterns
     # Generate a set of rotated patterns.These are rotated in increments of delta_angle
@@ -317,7 +316,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
     # of points, then we can eliminate it. We pick it to be 1/2 percent of the 
     # number of grid points (arbitrarily -- should be passed in as a parameter).
-    tolerance = .001*len(points_to_check)
+    tolerance = .005*len(points_to_check)
     print "tolerance ",tolerance , " grid size ", len(points_to_check)
     
     covered_point_sets = []
@@ -373,12 +372,10 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
         else:
             break
 
-    print "indexes_to_delete ", indexes_to_delete
+    print "deleting ", len(indexes_to_delete), " small lobes"
 
     # Remove the nearly empty lobes.
-    for i in indexes_to_delete:
-        del antenna_coverage[i]
-
+    antenna_coverage = [antenna_coverage[i] for i in range(0,len(antenna_coverage)) if i not in indexes_to_delete]
     antenna_coverage = remove_overlapping_polygons(antenna_coverage,bounding_polygon)
 
     # assemble the result.
@@ -418,9 +415,9 @@ def remove_overlapping_polygons(antenna_coverage,bounding_polygon):
         if covers(newcover,bounding_polygon,tolerance):
             indexes_to_remove.append(i)
             
-    print ("indexes_to_remove " + str(indexes_to_remove))
-    new_coverage = [antenna_coverage[i] for i in range(0,len(antenna_coverage)) if i not in indexes_to_remove]
-    return new_coverage
+    print ("remove_overlapping_polygons: indexes_to_remove " + str(indexes_to_remove))
+    newcover = [antenna_coverage[i] for i in range(0,len(antenna_coverage)) if i not in indexes_to_remove]
+    return newcover
         
 
 

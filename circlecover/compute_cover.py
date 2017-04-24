@@ -13,11 +13,11 @@ if __name__ == "__main__":
     parser.add_argument("-gs", type=int, default=400, help = "Grid size")
     parser.add_argument("-pr", help="Definition of protected region units in meters")
     parser.add_argument("-ap", help = "Definition of antenna patterns unit in Km.")
-    parser.add_argument("-anneal", default=False, action="store_true", help="Whether or not to anneal the result")
+    parser.add_argument("-anneal", type = int, default=0, help="Number of steps to run the annealer")
     parser.add_argument("-of",default="output", help = "Output file name prefix")
     args = parser.parse_args()
     protection_region = args.pr
-    do_anneal = args.anneal
+    do_anneal = args.anneal != 0
     coverage_file = args.ap
     #min_ctr_dist = args.dist
     min_ctr_dist = args.dist
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     cover = antennacover.min_antenna_area_cover_greedy(possible_centers, interference_contour, coverage_file, min_center_distance=min_ctr_dist)
     printcover.printAntennaCover(output_file, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
     if do_anneal:
-        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover,steps=args.anneal)
         annealr.anneal()
         cover = annealr.get_result()
         printcover.printAntennaCover(output_file + "Anneal", interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)

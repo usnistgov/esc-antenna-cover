@@ -92,7 +92,7 @@ class SimAnneal(Annealer):
         return zip(centers,indexes,angles)
 
 
-    def __init__(self,interference_contour, possible_centers, detection_coverage_file,cover):
+    def __init__(self,interference_contour, possible_centers, detection_coverage_file,cover,steps = 0):
         """
         Parameters:
             interference_contour : an ordered set of points that defines the interference contour. No loops are allowed. The 
@@ -148,9 +148,8 @@ class SimAnneal(Annealer):
         # self.intersecting_polygons = [ i for (i,p) in enumerate(self.cover_polygons) if p.difference(self.bounding_polygon).area > self.bounding_polygon.area*.01]
         self.index_count = 0
         # let each boudary polygon see 30 moves (arbitrary).
-        self.steps = len(self.cover_polygons) * 200
-        if self.steps == 0 :
-            print "nothing to do"
+        if steps == 0:
+            self.steps = len(self.cover_polygons) * 50
         else:
-            print "steps ", self.steps
+            self.steps = steps
 
