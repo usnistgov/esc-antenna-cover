@@ -9,8 +9,8 @@ import printcover
 if __name__ == "__main__":
     # Read and parse the args.
     parser = argparse.ArgumentParser()
-    parser.add_argument("-dist", type=int, default=0, help = "Min sensor spacing (km)")
-    parser.add_argument("-gs", type=int, default=400, help = "Grid size")
+    parser.add_argument("-dist", type=int, default=0, help = "Min sensor spacing (km) default 0")
+    parser.add_argument("-gs", type=int, default=400, help = "Grid size (default 400)")
     parser.add_argument("-pr", help="Definition of protected region units in meters")
     parser.add_argument("-ap", help = "Definition of antenna patterns unit in Km.")
     parser.add_argument("-anneal", type = int, default=0, help="Number of steps to run the annealer")
