@@ -114,29 +114,28 @@ def printAntennaCover(testName, interference_contour,
     ic_y = [interference_contour[i][1] for i in range(0,len(interference_contour))]
     esc_loc_x = [possible_centers[i][0] for i in range(0,len(possible_centers))]
     esc_loc_y = [possible_centers[i][1] for i in range(0,len(possible_centers))]
-    sensor_loc_x = [centers[i][0] for i in range(0,len(centers))]
-    sensor_loc_y = [centers[i][1] for i in range(0,len(centers))]
+    antenna_loc_x = [centers[i][0] for i in range(0,len(centers))]
+    antenna_loc_y = [centers[i][1] for i in range(0,len(centers))]
+    sensor_loc = list(set(centers))
+    sensor_loc_x = [sensor_loc[i][0] for i in range(0,len(sensor_loc))]
+    sensor_loc_y = [sensor_loc[i][1] for i in range(0,len(sensor_loc))]
 
     result["testName"] = testName
-    #result["possible_centers"] = possible_centers
     result["esc_loc_x"] = esc_loc_x
     result["esc_loc_y"] = esc_loc_y
-
-    result["cover_centers"] =  centers
     result["antenna_aperture"]= antenna_angle
     result["angles"] =  angles
     result["indexes"] = indices
     result["detection_coverage_file"] = coverage_file
-    result["test_name"] = testName
-    #result["interference_contour"] = interference_contour
     result["ic_x"] = ic_x
     result["ic_y"] = ic_y
     result["algorithm"] = "AntennaCover"
-    sensor_centers = list(set([c[0] for c in cover]))
-    #result["sensor_loc"] = sensor_centers
+    result["antenna_loc_x"] = antenna_loc_x
+    result["antenna_loc_y"] = antenna_loc_y
+    result["antenna_count"] = len(antenna_loc_x)
+    result["sensor_count"] = len(sensor_loc)
     result["sensor_loc_x"] = sensor_loc_x
     result["sensor_loc_y"] = sensor_loc_y
-    result["sensor_count"] = len(sensor_loc_x)
 
     output_file = testName + "AntennaCover." + str(antenna_angle) + ".json"
     f = open(output_file,"w")
@@ -263,9 +262,9 @@ def show_results_for_antenna_cover(fileName):
     esc_loc_y = result["esc_loc_y"]
     possible_centers = [(esc_loc_x[i],esc_loc_y[i]) for i in range(0,len(esc_loc_x))]
 
-    sensor_loc_x = result["sensor_loc_x"]
-    sensor_loc_y = result["sensor_loc_y"]
-    cover_centers = [(sensor_loc_x[i],sensor_loc_y[i]) for i in range(0,len(sensor_loc_x))]
+    antenna_loc_x = result["antenna_loc_x"]
+    antenna_loc_y = result["antenna_loc_y"]
+    cover_centers = [(antenna_loc_x[i],antenna_loc_y[i]) for i in range(0,len(antenna_loc_x))]
 
     centers_linestring = LineString(cover_centers)
     possible_centers_linestring = LineString(possible_centers)
@@ -297,12 +296,13 @@ def show_results_for_antenna_cover(fileName):
 
     antenna_aperture = result['antenna_aperture']
     sensor_count = result["sensor_count"]
+    antenna_count = result["antenna_count"]
     print "computing excess area ... "
     sea_excess_area,land_excess_area = excessarea.compute_excess_area_for_antenna_cover(indexes, 
             angles, cover_centers, coverage_filename, possible_centers, interference_contour)
     title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture) +\
             "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area) +\
-            "\nsensor_count = " + str(sensor_count)
+            "\nsensor_count = " + str(sensor_count) + " antenna_count = " + str(antenna_count)
     plt.suptitle(title)
     plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
     if os.path.dirname(fileName) != '':

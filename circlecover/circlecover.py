@@ -162,7 +162,7 @@ def compute_excess_area(circles, line_segments, grid_divisions=200):
     return area,grid_area
 
 
-def min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0):
+def min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0,ndivisions=100):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
@@ -354,7 +354,7 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         interference_set.append(point)
 
     # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
-    ndivs = 100 
+    ndivs = ndivisions 
     deltaX = (xmax - xmin)/ndivs
     deltaY = (ymax - ymin)/ndivs
     # We add additional points inside the polygon to make sure that our area

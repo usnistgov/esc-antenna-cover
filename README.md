@@ -194,27 +194,74 @@ See the example in circlecover/test/CircleCoverTest.m :
 
 ### COMMAND LINE INTERFACE
 
-A command line interface to run the antenna cover and circle cover algorithms is provided. Here is an invocation example:
+A command line interface to run the antenna cover and circle cover algorithms is provided. Here is an invocation example for running the antenna cover algorithm:
 
 
-    python compute_cover.py -pr test/InterfContour_WestCoast.txt -ap test/DetectionCoverage_60deg.txt -of WestCoast -dist 0
+    python compute_antenna_cover.py -pr test/InterfContour_WestCoast.txt -ap test/DetectionCoverage_60deg.txt -of WestCoast -dist 0
 
 
-The tool takes as inputs a detection coverage file and protection region (area bounded by interference boundary and shore).
-The output of this tool is a text file which may be read into matlab. 
+The tool takes as inputs a detection coverage file and protection region (area bounded by interference boundary and shore) with the following structure:
 
-    center_x [ center x coordinates of the antennas ]
-    center_y [ center y coordinates of the antennas ]
-    indexes  [ indentifiers of the antenna lobes presented in DetectionCoverage ]
-    angles   [ azimuth orientations of the antenna lobes ]
-    sensor_loc_x [ sensor x coordinates ]
-    sensor_loc_y [ sensor y coordinates ]
-    sensor_count  
-    sea_excess_area
-    land_excess_area
+-The detection coverage file specifies antenna coverage coverage patterns.
+--The first row of the detection coverage file is a row vector of angles.
+--The subsequent rows of the detection coverage file define the distance from the origin for each antenna cover pattern for the angles specified in the first row.
+--Each row of the detection coverage file specifies an antenna contour for different antenna sensitivities.
+
+The output of this tool is a json formatted text file which may be read into matlab. Following is an example of the output:
+
+    {
+        "algorithm": "AntennaCover", 
+        "angles": [ 0.1396, 3.7480, ... ],
+        "antenna_aperture": 60, 
+        "detection_coverage_file": "DetectionCoverage_60deg.txt", 
+        "esc_loc_x": [ 20, 25, ... ], 
+        "esc_loc_y": [ 46, 30, ... ], 
+        "ic_x": [ 20, 35, ... ], 
+        "ic_y": [ 55, 65, ... ], 
+        "indexes": [ 16, 16, ... ], 
+        "sensor_loc_x": [ 30, 50, ... ], 
+        "sensor_loc_y": [ 20, 30, ... ], 
+        "sensor_count": 4, 
+        "antenna_loc_x": [ 30, 50, ... ], 
+        "antenna_loc_y": [ 20, 30, ... ], 
+        "antenna_count": 7, 
+        "testName": "EstuaryAnneal" 
+    }
+
+Where the fields in the json document are as follows:
+
+- algorithm : Identifies that this is an output for an antenna cover algorithm.
+- angles : the azimuth angles of the antennas.
+- antenna\_aperture: Aperture of the antennas (informational).
+- esc\_loc\_x : permissible locations on the coast line where ESC's may be placed (x-coordinate)
+- esc\_loc\_y : permissible locations on the coast line where ESC's may be placed (y-coordinate)
+- ic\_x : Interference contour (x-coordinate) vector
+- ic\_y : Interference contour (y-coordinate) vector
+- antenna\_loc\_x: locations where antennas are placed (x-coordinate). 
+- antenna\_loc\_y: locations where antennas are placed (y-coordinate). 
+- anenna\_count: Number of sensors (informational).
+- sensor\_loc\_x: locations where sensors are placed (x-coordinate) (informational). 
+- sensor\_loc\_y: locations where sensors are placed (y-coordinate) (informational). 
+- sensor\_count: Number of sensors (informational).
+- testName: Test Name (informational).
 
 
-This information is also presented in a json file.
+The output file may be analyzed for excess area or visualized. To visualize the output file use the printcover.py script. Here is an example.
+
+
+    python printcover.py -a EstuaryAnnealAntennaCover.60.json
+
+To compute the excess area (area outside the covered region, use the following script:
+
+    python excessarea.py -a EstuaryAnnealAntennaCover.60.json
+   
+Gives the following output:
+
+
+    excess_sea_area 286.15 excess_land_area 264.21
+
+
+Use the -c flag for circle (isotropic antenna) cover in the commands above.
 
 
 
