@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     testName = output_file
     #min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0):
-    cover,covered = circlecover.min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=min_ctr_dist,ndivisions=grid_size)
+    cover = circlecover.min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=min_ctr_dist,ndivisions=grid_size)
     #printCover(interference_contour,cover,centers,min_separation,covered_segments,testName, algorithm):
     printcover.printCover(interference_contour, cover, possible_centers, min_ctr_dist,None,output_file,"AREA_COVER")
 

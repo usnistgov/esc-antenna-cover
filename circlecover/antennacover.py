@@ -299,7 +299,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     centers = copy.copy(possible_centers)
     antenna_cover_patterns = read_detection_coverage(antenna_cover_file)
     # Find the min circle cover.
-    cover,covered_points = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
+    cover = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
     
     # Generate a bounding polygon that inclues the interference contour and center locations.
     bounding_polygon = excessarea.generate_bounding_polygon(centers,interference_contour)

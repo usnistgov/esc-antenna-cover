@@ -38,9 +38,8 @@ function  [centers_x,centers_y,radius] = min_isotropic_area_cover(centers,ic, di
         contour.append(pypoint);
     end;
   
-    result = py.circlecover.circlecover.min_area_cover_greedy(pcenters,contour,distance);
+    ccles = py.circlecover.circlecover.min_area_cover_greedy(pcenters,contour,distance);
 
-    ccles = result{1};
     centers_x = zeros(1,length(ccles));
     centers_y = zeros(1,length(ccles));
     radius = zeros(1,length(ccles));

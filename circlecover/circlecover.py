@@ -48,118 +48,6 @@ def distance(point1,point2):
     """
     return math.sqrt((point1[0] - point2[0])**2  + (point1[1] - point2[1])**2)
 
-def compute_excess_area(circles, line_segments, grid_divisions=200):
-    """
-    This is a support function that is used to evaluate a cover algorithm.
-    compute the excess area - i.e. the area between the line collection
-    and the perephry of the circle using numerical integration.
-    Returns a tuple -- the area and the grid size used for computation.
-    The grid size is the length of each grid square.
-    """
-
-    def isoutside(circle, segments,point):
-        """
-        return true if the point is outside the line segment (between the
-        lines and the circumference of the circle.
-        """
-        l = line.Line(circle.get_center(),point)
-        intersection_count = 0
-        for line_segment in segments:
-            if  line_segment.intersects(l):
-                intersection_count = intersection_count + 1
-        #odd number of intersections means point is in 
-        #excess area region.
-        return (intersection_count % 2) == 1
-
-    def get_line_segments_for_circle(circle,line_segments):
-        """
-        Compute the intersection of the circle with a set of line segments.
-        """
-        retval = []
-        for l in line_segments:
-            b,excluded,included = circle.collides(l)
-            if b:
-                retval.append(included)
-        return retval
-
-
-    def generate_grid(circles, grid_divisions):
-        """
-        Generate a grid for numerical integration.
-        Returns a list of points enclosed in the circles.
-        """
-        centers = []
-        left_bottom = None
-        right_top = None
-        for c in circles:
-            if left_bottom == None:
-                left_bottom = [float(c.get_center()[0] - c.get_radius()), float(c.get_center()[1] - c.get_radius())]
-            else:
-                if c.get_center()[0] - c.get_radius() < left_bottom[0]:
-                    left_bottom[0] = c.get_center()[0] - c.get_radius()
-                if c.get_center()[1] - c.get_radius() < left_bottom[1]:
-                    left_bottom[1] = c.get_center()[1] - c.get_radius()
-
-            if right_top == None:
-                right_top = [float(c.get_center()[0] + c.get_radius()), float(c.get_center()[1] + c.get_radius())]
-            else:
-                if c.get_center()[0] + c.get_radius() > right_top[0]:
-                    right_top[0] = c.get_center()[0] + c.get_radius()
-                if c.get_center()[1] + c.get_radius() > right_top[1]:
-                    right_top[1] = c.get_center()[1] + c.get_radius()
-
-        # find the side of the grid. We insist that each dimension should be broken up into
-        # atleast grid_intervals intervals (arbitrary).
-        x_distance = right_top[0] - left_bottom[0]
-        y_distance = right_top[1] - left_bottom[1]
-
-        if y_distance > x_distance:
-            grid_size = y_distance/float(grid_divisions)
-        else:
-            grid_size = x_distance/float(grid_divisions)
-
-
-        x_divisions = int(x_distance/grid_size)
-        y_divisions = int(y_distance/grid_size)
-
-        grid = []
-        for i in range (0,x_divisions):
-            for j in range (0,y_divisions):
-                point = [left_bottom[0] + i*grid_size,left_bottom[1] + j*grid_size]
-                grid.append(point)
-
-        # Find the subset of the grid that is inside at least one circle.
-        newgrid = []
-        for point in grid:
-            found = False
-            for c in circles:
-                #if we find a circle that includes the point, 
-                # then incude in our integration side.
-                if not found and c.inside(point) :
-                    newgrid.append(point)
-                    found = True
-
-        # newgrid is a list of points within the circle set.
-        # we can integrate over this grid. grid_size is the dimension of one side
-        # of the integration square.
-        return newgrid,grid_size
-
-    grid,grid_size = generate_grid(circles,grid_divisions)
-    grid_area = len(grid)*grid_size*grid_size
-
-    count = 0
-    for c in circles:
-        segments = get_line_segments_for_circle(c,line_segments)
-        # figure out the points in the annulus. Note that we consider a point to be in the annulus if 
-        # the center is in corresponding grid point is in the annulus
-        filteredPoints = filter(lambda p: c.inside((p[0] + grid_size/2, p[1] + grid_size/2)) and isoutside(c,segments,(p[0] + grid_size/2, p[1] + grid_size/2)),grid)
-        k = 0
-        for p in filteredPoints:
-            grid.remove(p)
-            k = k + 1
-        count = count + k
-    area = count * grid_size * grid_size
-    return area,grid_area
 
 
 def min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0,ndivisions=100):
@@ -233,6 +121,61 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
 
 
     """
+
+    def generate_interference_set(possible_centers, interference_contour,ndivs):
+        # Make a copy of the interference contour so we will not destroy our parameter list.
+        ifcontour = copy.copy(interference_contour)
+        # Create a multipoint polygon coonsisting of the original contour 
+        # and the possible centers
+        points = [point for point in interference_contour]
+        # The centers and the shore points are listed in the same sorted order
+        centers = copy.copy(possible_centers)
+        centers.reverse()
+        for point in centers:
+            points.append(point)
+        # The polygon encloses the interference contour as well as the shore.
+        mp = Polygon(points)
+        # We will fill the polygon with a grid and cover all the points in
+        # the grid.
+        xmin = float(mp.bounds[0])
+        ymin = float(mp.bounds[1])
+        xmax = float(mp.bounds[2])
+        ymax = float(mp.bounds[3])
+
+        interference_set = []
+
+        for point in interference_contour:
+            interference_set.append(point)
+        # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
+        ndivs = ndivisions 
+        deltaX = (xmax - xmin)/ndivs
+        deltaY = (ymax - ymin)/ndivs
+        # We add additional points inside the polygon to make sure that our area
+        # is entirely covered.
+        for i in range(1,ndivs):
+            for j in range(1,ndivs):
+                x = xmin + deltaX*i
+                y = ymin + deltaY*j
+                if mp.contains(Point(x,y)):
+                    interference_set.append((x,y))
+        return interference_set
+
+    def covers(cover,interference_set):
+        union = cover[0].get_geometry()
+        for i in range(1,len(cover)):
+            union = union.union(cover[i].get_geometry())
+        uncovered = [p for p in interference_set if not union.contains(Point(p))]
+        return float(len(uncovered))/float(len(interference_set)) < .005
+
+    def eliminate_redundant_circles(cover,interference_set):
+        indexes_to_remove = []
+        for i in range(0,len(cover)):
+            testcover = [ cover[j] for j in range(0,len(cover)) if j != i and j not in indexes_to_remove]
+            if covers(testcover,interference_set):
+                indexes_to_remove.append(i)
+        newcover = [cover[i] for i in range(0,len(cover)) if i not in indexes_to_remove]
+        return newcover
+
     def find_tightest_enclosing_circle_for_points(centers,points):
         """
         Find the max-min circle. i.e. for each point of the collection
@@ -271,108 +214,60 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         return [p for p in points if circle.inside(p)]
 
 
-    def min_area_cover_greedy_worker(centers, interference_set,cover,points):
+    def min_area_cover_greedy_worker(centers, interference_set):
         # Find the max_min radius tightest enclosing circle.
-        max_min_center, max_min_radius = find_tightest_enclosing_circle_for_points(centers,interference_set)
+        cover = []
+        while len(interference_set) != 0:
+            max_min_center, max_min_radius = find_tightest_enclosing_circle_for_points(centers,interference_set)
 
-        # Check if the circle center aleady exists in our cover.
-        en = [i for (i,c) in enumerate(cover) if c.get_center() == max_min_center] 
-        # find the points enclosed by the largest max_cover circle.
-        max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
-        max_cover = find_cover(max_circle,interference_set)
-        found = len(en) > 0
-        if found:
-            # We alredy have a circle centered at the required location
-            index = en[0]
-            # Get the points enclosed by the circle.
-            existing_cover = points[index]
-            # Fetch the circle
-            max_circle = cover[index]
-            assert max_circle.get_radius() <= max_min_radius
-            # Set a new raadius
-            max_circle.set_radius(max_min_radius)
-            # Compute the new set of points covered by that circle
-            max_cover = max_cover + existing_cover
-            # Record the points
-            points[index] = max_cover
-        else:
-            # We dont have a circle at the center we found
-            # Append the new circle to our cover
-            cover.append(max_circle)
-            # Track the points that are covered by that circle
-            points.append(max_cover)
+            # Check if the circle center aleady exists in our cover.
+            en = [i for (i,c) in enumerate(cover) if c.get_center() == max_min_center] 
+            # find the points enclosed by the largest max_cover circle.
+            max_circle = ccle.Circle(center=max_min_center,radius=max_min_radius)
+            max_cover = find_cover(max_circle,interference_set)
+            found = len(en) > 0
+            if found:
+                # We alredy have a circle centered at the required location
+                index = en[0]
+                # Fetch the circle
+                max_circle = cover[index]
+                assert max_circle.get_radius() <= max_min_radius
+                # Set a new raadius
+                max_circle.set_radius(max_min_radius)
+            else:
+                # We dont have a circle at the center we found
+                # Append the new circle to our cover
+                cover.append(max_circle)
 
-        
-        # Remove the points from our cover from the interference
-        # contour. This leaves the others to be covered.
-        for p in max_cover:
-            if p in interference_set:
+            # Remove the points from our cover from the interference
+            # contour. This leaves the others to be covered.
+            for p in max_cover:
                 interference_set.remove(p)
 
-        # Of the remaining centers, remove those that violate our distance criterion.
-        centers_to_remove = [k for k,cntr in enumerate(centers)
+            # Of the remaining centers, remove those that violate our distance criterion.
+            centers_to_remove = [k for k,cntr in enumerate(centers)
                                 if distance(cntr,max_circle.get_center()) < min_center_distance
                                     and max_circle.get_center() != cntr]
-        for k in sorted(centers_to_remove, reverse=True):
-            del centers[k]
+            for k in sorted(centers_to_remove, reverse=True):
+                del centers[k]
 
         # if we have covered every point in the interference set, then we are done.
-        if len(interference_set) == 0:
-            return cover,points
-        else:
-            # Otherwise, recurse on what is remaining
-            return min_area_cover_greedy_worker(centers,interference_set,cover,points)
+        return cover
 
     # This is the outer function
 
     # Make a copy of the centers
     centers = copy.copy(possible_centers)
 
-    # Make a copy of the interference contour so we will not destroy our parameter list.
-    ifcontour = copy.copy(interference_contour)
-
-    # Create a multipoint polygon coonsisting of the original contour 
-    # and the possible centers
-    points = [point for point in interference_contour]
-    # The centers and the shore points are listed in the same sorted order
-    centers.reverse()
-    for point in centers:
-        points.append(point)
-    # The polygon encloses the interference contour as well as the shore.
-    mp = Polygon(points)
-
-    # We will fill the polygon with a grid and cover all the points in
-    # the grid.
-    xmin = float(mp.bounds[0])
-    ymin = float(mp.bounds[1])
-    xmax = float(mp.bounds[2])
-    ymax = float(mp.bounds[3])
-
-    interference_set = []
-
-    for point in interference_contour:
-        interference_set.append(point)
-
-    # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
-    ndivs = ndivisions 
-    deltaX = (xmax - xmin)/ndivs
-    deltaY = (ymax - ymin)/ndivs
-    # We add additional points inside the polygon to make sure that our area
-    # is entirely covered.
-    for i in range(1,ndivs):
-        for j in range(1,ndivs):
-            x = xmin + deltaX*i
-            y = ymin + deltaY*j
-            if mp.contains(Point(x,y)):
-                interference_set.append((x,y))
-
-    points = []
-    cover = []
+    interference_set = generate_interference_set(possible_centers,interference_contour,ndivisions)
     # Now call the worker function to do the hard work.
-    cover,covered = min_area_cover_greedy_worker(centers, interference_set,cover,points)
+    cover = min_area_cover_greedy_worker(centers, interference_set)
     # Return the set of the circles and the subset of points each one covers 
     # as computed by the algorithm. 
-    return cover,covered
+    interference_set = generate_interference_set(possible_centers,interference_contour,ndivisions)
+    cover = eliminate_redundant_circles(cover,interference_set)
+
+    return cover
 
 
 def min_point_cover_greedy_with_fixed_discs(possible_centers, interference_contour, min_center_distance=0):

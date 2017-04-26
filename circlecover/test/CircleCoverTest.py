@@ -115,7 +115,7 @@ class CircleCoverTest(unittest.TestCase):
         print("testMinimumCircleSetCoverForLineSetGreedy3")
         line_endpoints = [[20,80],[50,70]]
         centers = [(10,70),(30,60)]
-        circ,segments = circlecover.min_area_cover_greedy(centers,line_endpoints)
+        circ = circlecover.min_area_cover_greedy(centers,line_endpoints)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         testName = "testMinimumCircleSetCoverForLineSetGreedy3"
@@ -231,7 +231,7 @@ class CircleCoverTest(unittest.TestCase):
                     break
             self.assertTrue(flag)
 
-        circ,included = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
+        circ = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
         printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
@@ -279,7 +279,7 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
-        circ,included = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
+        circ = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
         printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
@@ -297,7 +297,7 @@ class CircleCoverTest(unittest.TestCase):
         """
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
-        circ,included = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance=0)
+        circ = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance=0)
         testName = "Estuary"
         printcover.printCover(interference_contour,circ,centers,0,[],testName,AREA_COVER)
         for point in interference_contour:
