@@ -8,7 +8,7 @@ if __name__ == "__main__":
     # Read and parse the args.
     parser = argparse.ArgumentParser()
     parser.add_argument("-dist", type=int, default=0, help = "Min sensor spacing (km) default 0")
-    parser.add_argument("-gs", type=int, default=400, help = "Grid size (default 400)")
+    parser.add_argument("-gs", type=int, default=100, help = "Grid size (default 100 changing this affects run time dramatically)")
     parser.add_argument("-pr", help="Definition of protected region units in meters",required=True)
     parser.add_argument("-of",default="output", help = "Output file name prefix")
     args = parser.parse_args()

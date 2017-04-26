@@ -40,6 +40,74 @@ def generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage):
         polygons.append(rotated_translated_polygon)
     return polygons
 
+def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
+            possible_centers, interference_contour):
+    """
+    Parameters:
+        indexes - the selected contours from detection_coverage_file
+        angles - the orientation of each antenna.
+        centers : the centers of the sensors (ordered).
+        interference_contour : The interference contour point set (ordered)
+        detection_coverage_file: The detection coverage file.
+    """
+
+
+    def point_covered_by_lobe(point,antenna_cover_lobes):
+        for i in range(0,len(antenna_cover_lobes)):
+            if antenna_cover_lobes[i].contains(point):
+                return True
+        return False
+            
+
+
+    # load the detection coverage file.
+    detection_coverage = antennacover.read_detection_coverage(detection_coverage_file)
+    
+    # the bounding polygon representing the if-contour and the possible centers. This bounds the region that
+    # needs to be covered.
+    bounding_polygon = generate_bounding_polygon(possible_centers,interference_contour)
+
+    # Line string representing the interference contour. Add first and last point 
+    # of possible_centers to this. This is the interference contour that is on the sea.
+    interference_contour.append(possible_centers[-1])
+    interference_contour.insert(0,possible_centers[0])
+    interference_contour_linestring = LineString(interference_contour)
+    
+    # Line string representing the possible sensor locations 
+    possible_centers_linestring = LineString(possible_centers)
+
+    # the polygons representing the antenna shapes (rotated and translated)
+    antenna_cover_polygons = generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage)
+    # Take the union of these shapes
+    cover_union = antenna_cover_polygons[0]
+    for i in range(1,len(antenna_cover_polygons)):
+        cover_union = cover_union.union(antenna_cover_polygons[i])
+    union = cover_union.union(bounding_polygon)
+    minx,miny,maxx,maxy = union.bounds
+
+    # Generate a point set and classify.
+    ndivs = antennacover.NDIVISIONS
+    deltax,deltay = float(maxx-minx)/ndivs, float(maxy-miny)/ndivs
+    area_per_grid_point = deltax*deltay
+    
+    excess_sea_coverage_count = 0
+    excess_land_coverage_count = 0
+    for i in range(0,ndivs):
+        for j in range(0,ndivs):
+            p = Point(minx + i*deltax, miny + j*deltay)
+            if cover_union.contains(p) and not bounding_polygon.contains(p):
+            #if point_covered_by_lobe(p,antenna_cover_polygons) and not bounding_polygon.contains(p):
+                # The point p is now either on sea or land.
+                d1 = interference_contour_linestring.distance(p)
+                d2 = possible_centers_linestring.distance(p)
+                if d1 <  d2 :
+                    excess_sea_coverage_count = excess_sea_coverage_count + 1
+                else:
+                    excess_land_coverage_count = excess_land_coverage_count + 1
+
+    return (round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point))
+
+
 
 
 
