@@ -265,7 +265,6 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     cover = min_area_cover_greedy_worker(centers, interference_set)
     # Return the set of the circles and the subset of points each one covers 
     # as computed by the algorithm. 
-    interference_set = generate_interference_set(possible_centers,interference_contour,ndivisions)
     cover = eliminate_redundant_circles(cover,cover_polygon)
 
     print "nsensors ", len(cover)
