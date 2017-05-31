@@ -67,7 +67,7 @@ def pol2cart(r,theta):
     return (r*math.cos(float(theta)/180*math.pi), r*math.sin(float(theta)/180*math.pi))
 
 
-def read_detection_coverage(fileName):
+def read_detection_coverage(fileName,coverage_units="km"):
     """
     Read a bunch of antenna patterns and return an array of arrays containing the results.
     Returns a set tuples. The first element of the tuple is the max reach of the antenna
@@ -80,7 +80,11 @@ def read_detection_coverage(fileName):
     for i in range(1,len(lines)):
         coverage = eval(lines[i])
         thiscover = [pol2cart(coverage[j],polarLocations[j]) for j in range(0,len(polarLocations))]
+        if coverage_units=="m" :
+            thiscover = [(thiscover[i][0]*1000,thiscover[i][1]*1000) for i in range(0,len(thiscover))]
         max_distance_covered = np.max(coverage) 
+        if coverage_units == "m":
+            max_distance_covered = max_distance_covered*1000
         coverage_polygon = Polygon(thiscover)
         # Attach it as a tuple of < max_distance_covered, coverage_polygon  >
         cp  = namedtuple("cp",["max_coverage", "lobe"])
@@ -128,6 +132,14 @@ def translate(polygon, point):
     Translate a polygon from the origin to a point.
     """
     return affinity.translate(polygon,xoff=point[0],yoff=point[1])
+
+def translate_and_rotate(detection_coverage,center,index,angle):
+    """
+    Translate and roate lobe from the detection coverage patterns.
+    return a polygon with that lobe.
+    """
+    lobe = detection_coverage[index].lobe
+    return translate(rotate(lobe,angle),center)
 
 
 def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_coverage):
@@ -185,13 +197,10 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
         
     # Compute convex hull of points to cover
     mp = MultiPoint(points_to_cover).convex_hull
-    try:
-        if isinstance(mp,Polygon):
-            convex_hull = list(mp.exterior.coords)
-        else:
-            convex_hull = list(mp.coords)
-    except:
-        pdb.set_trace()
+    if isinstance(mp,Polygon):
+       convex_hull = list(mp.exterior.coords)
+    else:
+       convex_hull = list(mp.coords)
 
     furthest_point_tuple = max([(p,distance(center,p)) for p in convex_hull], key = lambda t:t[1])
     radius = furthest_point_tuple[1]
@@ -201,6 +210,7 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
     if index >= len(detection_coverage):
         print("radius " + str(radius*1.2))
         print("max_detection_coverage " + str(detection_coverage[len(detection_coverage) -1][0]))
+        pdb.set_trace()
         raise Exception("Antenna Pattern could not be found")
     # The unrotated antenna pattern
     antenna_pattern = detection_coverage[index].lobe
@@ -235,7 +245,7 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
             
 
 
-def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file,  min_center_distance=0,tol=.005):
+def min_antenna_area_cover_greedy(possible_centers, polygon_to_cover, antenna_cover_file,  min_center_distance=0,tol=.005,coverage_units="km"):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered.
@@ -243,7 +253,7 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
     Parameters:
 
         possible_centers : Set of locations (points) where sensors may be placed (typically on the shore line).
-        interference_contour: A set of points denoting the boundary of the area that must be protected.
+        polygon_to_cover: Polygon to cover.
         antenna_cover_file: A file (generated offline using propagation modeling) 
                 which indicates the area covered by each antenna with the axis of the antenna horizontal.
         min_center_distance: The minimum distance between center locations that is permissible.
@@ -294,23 +304,24 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
     """
 
-        
-
     centers = copy.copy(possible_centers)
-    antenna_cover_patterns = read_detection_coverage(antenna_cover_file)
+    antenna_cover_patterns = read_detection_coverage(antenna_cover_file,coverage_units=coverage_units)
     # Find the min circle cover.
-    cover = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance)
+    cover = circlecover.min_area_cover_greedy(centers,polygon_to_cover,min_center_distance)
     
     # Generate a bounding polygon that inclues the interference contour and center locations.
-    bounding_polygon = excessarea.generate_bounding_polygon(centers,interference_contour)
-    minx,miny,maxx,maxy = bounding_polygon.bounds
+    minx,miny,maxx,maxy = polygon_to_cover.bounds
     ndivisions = NDIVISIONS
     deltax = float(maxx - minx) / float(ndivisions)
     deltay = float(maxy - miny) / float(ndivisions)
     points_to_check = [(minx+i*deltax, miny+j*deltay) 
                             for i in range(0,ndivisions) 
                                 for j in range(0,ndivisions) 
-                                    if bounding_polygon.contains(Point(minx+i*deltax, miny+j*deltay))]
+                                    if polygon_to_cover.contains(Point(minx+i*deltax, miny+j*deltay))]
+
+    # Check for corner condition -- no area to cover so return empty answer.
+    if len(points_to_check) == 0:
+        return []
         
     # we want to eliminate lobes that have a very small number of points included
     # to eliminate the noise. If an antenna lobe covers less than tolerance number
@@ -376,23 +387,15 @@ def min_antenna_area_cover_greedy(possible_centers, interference_contour, antenn
 
     # Remove the nearly empty lobes.
     antenna_coverage = [antenna_coverage[i] for i in range(0,len(antenna_coverage)) if i not in indexes_to_delete]
-    antenna_coverage = remove_overlapping_polygons(antenna_coverage,bounding_polygon)
+    antenna_coverage = remove_overlapping_polygons(antenna_coverage,polygon_to_cover)
 
     # assemble the result.
     retval = [ (antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle) for i in range(0,len(antenna_coverage))]
 
-    """
-    antenna_coverage.reverse()
-    # want to reject lobes that cover very few points.
-    per_lobe_tolerance = max(tolerance/len(antenna_coverage),2)
-    retval = []  
-    for i in range(0,len(antenna_coverage)):
-        if len(antenna_coverage[i].covered_points) > per_lobe_tolerance:
-            print "covered_points ", len(antenna_coverage[i].covered_points)
-            retval.append((antenna_coverage[i].center,antenna_coverage[i].index,antenna_coverage[i].angle))
-    """
     
     return retval
+
+
 
 def covers(antenna_coverage,bounding_polygon,tolerance):
     union = antenna_coverage[0].lobe
@@ -402,13 +405,19 @@ def covers(antenna_coverage,bounding_polygon,tolerance):
     return diff/bounding_polygon.area <= tolerance
 
 def remove_overlapping_polygons(antenna_coverage,bounding_polygon):     
+    # Nothing to remove.
+    if len(antenna_coverage) == 1:
+        return antenna_coverage
     # Now remove a polygon at a time and see if the cover criterion is met.
     indexes_to_remove = []
     union = antenna_coverage[0].lobe
     for i in range(1,len(antenna_coverage)):
         union = union.union(antenna_coverage[i].lobe)
-    diff = bounding_polygon.difference(union).area
-    tolerance = diff/bounding_polygon.area 
+    try:
+        diff = bounding_polygon.difference(union).area
+        tolerance = diff/bounding_polygon.area 
+    except:
+        return antenna_coverage
 
     for i in range(0,len(antenna_coverage)):
         newcover = [antenna_coverage[k] for k in range(0,len(antenna_coverage)) if k != i and k not in indexes_to_remove]
@@ -430,10 +439,12 @@ def min_antenna_area_cover_anneal(possible_centers, interference_contour, antenn
     and calls the simulated annealing function to improve the cover. 
     """
 
-    cover = min_antenna_area_cover_greedy(possible_centers, interference_contour, antenna_cover_file, min_center_distance=0)
+    bounding_polygon = excess_area.generate_bounding_polygon(possible_centers,interference_contour)
+
+    cover = min_antenna_area_cover_greedy(possible_centers, bounding_polygon, antenna_cover_file, min_center_distance=0)
 
     if anneal:
-        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(bounding_polygon, possible_centers, coverage_file,cover)
         annealr.anneal()
         cover = annealr.get_result()
 

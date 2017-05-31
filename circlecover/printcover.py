@@ -40,6 +40,7 @@ import json
 import circlecover
 import antennacover
 import os
+import copy
 import excessarea
 from line import Line
 import matplotlib as mpl
@@ -68,7 +69,8 @@ def total_area(circle_collection):
     return total_area
 
 def plot_coords(ax, ob, point_color):
-    x, y = ob.xy
+    x = [r[0] for r in ob]
+    y = [r[1] for r in ob]
     ax.plot(x, y, 'o', color=point_color, zorder=1)
 
 def plot_point(ax,point,point_color):
@@ -103,17 +105,24 @@ def _testPrintAntennaCircleCover(testName,testCircle,cover,coverage_file,points_
     f.close()
 
 
-def printAntennaCover(testName, interference_contour, 
+def reverse(a_list):
+    a_list_copy = copy.copy(a_list)
+    reverse(a_list_copy)
+    return a_list_copy
+
+
+def printAntennaCover(testName, protected_region, 
                       possible_centers, cover, coverage_file, 
-                      antenna_angle, min_separation):
+                      min_separation):
     result = {}
     centers = [c[0] for c in cover   ]
     indices = [c[1] for c in cover   ]
     angles =  [c[2] for c in cover  ]
-    ic_x = [interference_contour[i][0] for i in range(0,len(interference_contour))]
-    ic_y = [interference_contour[i][1] for i in range(0,len(interference_contour))]
     esc_loc_x = [possible_centers[i][0] for i in range(0,len(possible_centers))]
     esc_loc_y = [possible_centers[i][1] for i in range(0,len(possible_centers))]
+    
+    ic_x = list(protected_region.exterior.coords.xy[0])
+    ic_y = list(protected_region.exterior.coords.xy[1])
     antenna_loc_x = [centers[i][0] for i in range(0,len(centers))]
     antenna_loc_y = [centers[i][1] for i in range(0,len(centers))]
     sensor_loc = list(set(centers))
@@ -123,7 +132,6 @@ def printAntennaCover(testName, interference_contour,
     result["testName"] = testName
     result["esc_loc_x"] = esc_loc_x
     result["esc_loc_y"] = esc_loc_y
-    result["antenna_aperture"]= antenna_angle
     result["angles"] =  angles
     result["indexes"] = indices
     result["detection_coverage_file"] = coverage_file
@@ -137,7 +145,7 @@ def printAntennaCover(testName, interference_contour,
     result["sensor_loc_x"] = sensor_loc_x
     result["sensor_loc_y"] = sensor_loc_y
 
-    output_file = testName + "AntennaCover." + str(antenna_angle) + ".json"
+    output_file = testName + "AntennaCover." + str(coverage_file) + ".json"
     f = open(output_file,"w")
     to_write = json.dumps(result,indent=4,sort_keys=True)
     f.write(to_write)
@@ -145,7 +153,8 @@ def printAntennaCover(testName, interference_contour,
 
 
 
-def printCover(interference_contour,cover,centers,min_separation,covered_segments,testName, algorithm):
+
+def printCover(protected_region,cover,centers,min_separation,covered_segments,testName, algorithm):
     """
     Store the circle cover test results in a json formatted file for later viewing.
     """
@@ -157,19 +166,10 @@ def printCover(interference_contour,cover,centers,min_separation,covered_segment
         output_file = testName + '_A.json'
 
     f = open(output_file,"w")
-    ic_x = [interference_contour[i][0] for i in range(0,len(interference_contour))]
-    ic_y = [interference_contour[i][1] for i in range(0,len(interference_contour))]
     esc_loc_x = [centers[i][0] for i in range(0,len(centers))]
     esc_loc_y = [centers[i][1] for i in range(0,len(centers))]
-    lines = []
-
-    p0 = interference_contour[0]
-    for i in range(1,len(interference_contour)):
-        p1 = interference_contour[i]
-        l = Line(p0,p1)
-        lines.append(l)
-        p0 = p1
-
+    ic_x = list(protected_region.exterior.coords.xy[0])
+    ic_y = list(protected_region.exterior.coords.xy[1])
 
     centers_x = [c.get_center()[0] for c in cover]
     centers_y = [c.get_center()[1] for c in cover]
@@ -247,29 +247,29 @@ def show_results_for_antenna_cover(fileName):
     plt.figure(dpi=90)
     # get the current axes.
     ax = plt.gca()
-    f = open(fileName)
-    result = json.load(f)
+    with  open(fileName) as f:
+        result = json.load(f)
 
     ic_x = result["ic_x"]
     ic_y = result["ic_y"]
-    interference_contour = [(ic_x[i],ic_y[i]) for i in range(0,len(ic_x))]
+    interference_contour = zip(ic_x,ic_y)
     interference_linestring = LineString(interference_contour)
 
-    plot_coords(ax,interference_linestring,RED)
+    plot_coords(ax,interference_contour,RED)
     plot_line(ax,interference_linestring,YELLOW)
 
     esc_loc_x = result["esc_loc_x"]
     esc_loc_y = result["esc_loc_y"]
-    possible_centers = [(esc_loc_x[i],esc_loc_y[i]) for i in range(0,len(esc_loc_x))]
+    possible_centers = zip(esc_loc_x,esc_loc_y)
 
     antenna_loc_x = result["antenna_loc_x"]
     antenna_loc_y = result["antenna_loc_y"]
-    cover_centers = [(antenna_loc_x[i],antenna_loc_y[i]) for i in range(0,len(antenna_loc_x))]
+    cover_centers = zip(antenna_loc_x,antenna_loc_y)
 
-    centers_linestring = LineString(cover_centers)
+    #centers_linestring = LineString(cover_centers)
     possible_centers_linestring = LineString(possible_centers)
 
-    plot_coords(ax,centers_linestring,GREEN)
+    plot_coords(ax,cover_centers,GREEN)
     plot_line(ax,possible_centers_linestring,BLUE)
     angles = result['angles']
     indexes = result['indexes']
@@ -281,7 +281,7 @@ def show_results_for_antenna_cover(fileName):
 
     # Compute the bounds of the polygon cover for drawing.
     circ = interference_linestring
-    circ = circ.union(centers_linestring)
+    circ = circ.union(possible_centers_linestring)
     for i in range(0,len(indexes)):
         polygon = detection_coverage[indexes[i]][1]
         rotated_cover = antennacover.rotate(polygon,angles[i])
@@ -294,17 +294,18 @@ def show_results_for_antenna_cover(fileName):
     ax.set_xlim([xmin,xmin+delta])
     ax.set_ylim([ymin,ymin+delta])
 
-    antenna_aperture = result['antenna_aperture']
+    coverage_file = result["detection_coverage_file"]
     sensor_count = result["sensor_count"]
     antenna_count = result["antenna_count"]
     print "computing excess area ... "
-    sea_excess_area,land_excess_area = excessarea.compute_excess_area_for_antenna_cover(indexes, 
+    sea_excess_area,land_excess_area,outage_area,coverage_area = excessarea.compute_excess_area_for_antenna_cover(indexes, 
             angles, cover_centers, coverage_filename, possible_centers, interference_contour)
-    title = "Algorithm = " + "Antenna_Cover; Antenna_aperture_angle = "  + str(antenna_aperture) +\
+    title = "antenna_coverage_file = "  + coverage_file +\
             "\nland_excess_area = " + str(land_excess_area) + " sea_excess_area = " + str(sea_excess_area) +\
+            "\noutage_area = " + str(outage_area) + " coverage_area = " + str(coverage_area) +\
             "\nsensor_count = " + str(sensor_count) + " antenna_count = " + str(antenna_count)
     plt.suptitle(title)
-    plt.gcf().canvas.set_window_title(result["testName"] +  "_Antenna_" + str(antenna_aperture))
+    plt.gcf().canvas.set_window_title(result["testName"] +  "_" + coverage_file)
     if os.path.dirname(fileName) != '':
         mpl.rcParams["savefig.directory"] = os.chdir(os.path.dirname(fileName))
     else:
@@ -339,13 +340,13 @@ def show_results_for_circle_cover(fileName):
     ic_y = result["ic_y"]
     interference_contour = [(ic_x[i],ic_y[i]) for i in range(0,len(ic_x))]
     interference_linestring = LineString(interference_contour)
-    plot_coords(ax,interference_linestring,RED)
+    plot_coords(ax,interference_contour,RED)
     plot_line(ax,interference_linestring,YELLOW)
     sensor_loc_x = result["sensor_loc_x"]
     sensor_loc_y = result["sensor_loc_y"]
     possible_centers = [(esc_loc_x[i],esc_loc_y[i]) for i in range(0,len(esc_loc_x))]
     centers_linestring = LineString(possible_centers)
-    plot_coords(ax,centers_linestring,GREEN)
+    plot_coords(ax,possible_centers,GREEN)
     plot_line(ax,centers_linestring,BLUE)
     sensor_radii = result["sensor_detection_radius"]
 
@@ -361,12 +362,9 @@ def show_results_for_circle_cover(fileName):
     circ = circ.union(interference_linestring)
     circ = circ.union(centers_linestring)
 
-    if len(cover_centers) > 1:
-        cover_centers_linestring = LineString(cover_centers)
-        plot_coords(ax,cover_centers_linestring,BLACK)
-    else:
-        plot_point(ax,cover_centers[0],BLACK)
-        circ = circ.union(Point(cover_centers[0]))
+    plot_coords(ax,cover_centers,BLACK)
+    plot_point(ax,cover_centers[0],BLACK)
+    circ = circ.union(Point(cover_centers[0]))
 
     for i in range(1,len(cover)):
         circ = circ.union(cover[i].get_geometry())
@@ -385,11 +383,9 @@ def show_results_for_circle_cover(fileName):
         ax.add_patch(p)
 
     print "computing excess area ... "
-    sea_excess_area,land_excess_area = excessarea.compute_excess_area_for_circle_cover(cover, possible_centers, interference_contour)
-    cover_area = cover_union.area
-    title = "Algorithm = " + result["algorithm"] + "\nsea_excess_area = " + str(format_e(sea_excess_area)) +\
-                            "\nland_excess_area = " + str(format_e(land_excess_area)) +\
-                            "\ncover_area = " + str(format_e(cover_area))
+    sea_excess_area,land_excess_area,outage_area,cover_area = excessarea.compute_excess_area_for_circle_cover(cover, possible_centers, interference_contour)
+    title = "\nsea_excess_area = " + str(format_e(sea_excess_area)) +" land_excess_area = " + str(format_e(land_excess_area)) + \
+            "\noutage_area = " + str(outage_area) + " cover_area = " + str(format_e(cover_area))
     
     plt.suptitle(title)
 

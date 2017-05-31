@@ -16,6 +16,7 @@ import printcover
 import antennacover
 import annealer
 import simannealer
+import excessarea
 import operator
 from shapely.geometry import Polygon
 from shapely.geometry import Point
@@ -154,8 +155,9 @@ class AntennaCoverTest(unittest.TestCase):
 
         testName = "VirginiaBeach"
         min_ctr_dist = 60
-        cover = antennacover.min_antenna_area_cover_greedy(centers,line_endpoints,"DetectionCoverage_60deg.txt",60,min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, line_endpoints, centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,"DetectionCoverage_60deg.txt",min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
 
 
     def testSF(self):
@@ -179,8 +181,9 @@ class AntennaCoverTest(unittest.TestCase):
 
         testName = "SanFrancisco"
         min_ctr_dist = 60
-        cover = antennacover.min_antenna_area_cover_greedy(centers,line_endpoints,"DetectionCoverage_60deg.txt",min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, line_endpoints, centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,"DetectionCoverage_60deg.txt",min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
 
 
 
@@ -191,9 +194,10 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_60deg.txt",min_center_distance=min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"DetectionCoverage_60deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
-        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, possible_centers, cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
 
 
     def testEstuary1(self):
@@ -203,9 +207,10 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_90deg.txt",min_center_distance=min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"DetectionCoverage_90deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
-        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_90deg.txt",90,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, possible_centers, cover,"DetectionCoverage_90deg.txt",min_ctr_dist)
 
 
     def testEstuary2(self):
@@ -215,9 +220,10 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,"DetectionCoverage_120deg.txt",min_center_distance=min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"DetectionCoverage_120deg.txt",min_center_distance=min_ctr_dist)
         testName = "Estuary"
-        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,"DetectionCoverage_120deg.txt",120,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, possible_centers, cover,"DetectionCoverage_120deg.txt",min_ctr_dist)
 
     def testEstuaryAnneal(self):
         """
@@ -229,13 +235,14 @@ class AntennaCoverTest(unittest.TestCase):
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
         testName = "Estuary"
-        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,interference_contour,coverage_file,min_center_distance=min_ctr_dist)
-        printcover.printAntennaCover(testName, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
-        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,coverage_file,min_center_distance=min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, possible_centers, cover,coverage_file,min_ctr_dist)
+        annealr = simannealer.SimAnneal(poly, possible_centers, coverage_file,cover)
         annealr.anneal()
         testName = "EstuaryAnneal"
         improved_cover = annealr.get_result()
-        printcover.printAntennaCover(testName, interference_contour, possible_centers, improved_cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, possible_centers, improved_cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
 
     def testSFAnneal (self):
         esc_loc_x = m_to_km([-2300850,-2297160,-2284680,-2283390,-2284800,-2289540,-2287620,-2287740,-2287620,-2291760,-2289540,-2283720,
@@ -259,13 +266,14 @@ class AntennaCoverTest(unittest.TestCase):
         testName = "SanFrancisco"
         min_ctr_dist = 60
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,60,min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "SanFranciscoAnneal"
-        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
-        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,"DetectionCoverage_60deg.txt",60,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, improved_cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
 
     def testVBAnneal(self):
         # Convert all units to Km
@@ -287,13 +295,14 @@ class AntennaCoverTest(unittest.TestCase):
         testName = "VirginiaBeach"
         min_ctr_dist = 60
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,interference_contour)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "VirginiaBeachAnneal"
-        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
-        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,coverage_file,60,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, improved_cover,coverage_file,min_ctr_dist)
 
     def testEastCoastAnneal(self):
         with open ("InterfContour_EastCoast.txt", "r") as myfile:
@@ -315,13 +324,14 @@ class AntennaCoverTest(unittest.TestCase):
         testName = "EastCoast"
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_greedy(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,interference_contour)
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "EastCoastAnneal"
-        annealr = simannealer.SimAnneal(interference_contour, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
-        printcover.printAntennaCover(testName, interference_contour, centers, improved_cover,coverage_file,60,min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, improved_cover,coverage_file,min_ctr_dist)
         
     def testEastCoastAnneal1(self):
         with open ("InterfContour_EastCoast.txt", "r") as myfile:
@@ -343,5 +353,36 @@ class AntennaCoverTest(unittest.TestCase):
         testName = "EastCoast"
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
-        cover = antennacover.min_antenna_area_cover_anneal(centers,interference_contour,coverage_file,min_center_distance = min_ctr_dist)
-        printcover.printAntennaCover(testName, interference_contour, centers, cover,coverage_file,60,min_ctr_dist)
+        poly = excessarea.generate_bounding_polygon(centers,interference_contour)
+        cover = antennacover.min_antenna_area_cover_anneal(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
+        printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
+
+    
+    def testDPA(self):
+        with open ("CandidateESCLoc_East.txt", "r") as myfile:
+            data=myfile.readlines()
+        
+        esc_loc_x = [x/1000.0 for x in eval(data[0])]
+        esc_loc_y = [y/1000.0 for y in eval(data[1])]
+        
+        centers = zip(esc_loc_x,esc_loc_y)
+        
+        with open ("DPA1.txt", "r") as myfile:
+            data=myfile.readlines()
+
+
+        dpa_loc_x = [x/1000.0 for x in eval(data[0])]
+        dpa_loc_y = [y/1000.0 for y in eval(data[1])]
+        dpa_loc = zip(dpa_loc_x,dpa_loc_y)
+        
+        poly = Polygon(dpa_loc)
+        
+        coverage_file = "ITMDetectionCoverage_90deg.txt"  
+        
+        min_ctr_dist = 0
+
+        cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
+        testName = "DPA1"
+        printcover.printAntennaCover(testName,poly,centers,cover,coverage_file,min_ctr_dist)
+
+        

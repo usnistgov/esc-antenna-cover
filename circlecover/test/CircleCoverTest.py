@@ -9,6 +9,7 @@ import pdb
 import random
 import math
 import logging
+import excessarea
 import numpy as np
 from line import Line
 import printcover
@@ -60,7 +61,8 @@ class CircleCoverTest(unittest.TestCase):
         centers = [(10,70),(30,60),(50,55),(50,30),(60,20)]
         testName =  "testMinimumCircleSetCoverForLineSetGreedy"
         circ,covered_segments = circlecover.min_line_cover_greedy(centers,line_endpoints)
-        printcover.printCover(line_endpoints,circ,centers,0,covered_segments,testName, VAR_RADIUS)
+        bp = excessarea.generate_bounding_polygon(line_endpoints,centers)
+        printcover.printCover(bp,circ,centers,0,covered_segments,testName, VAR_RADIUS)
         self.assertTrue(len(circ) == len(covered_segments))
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
@@ -80,7 +82,7 @@ class CircleCoverTest(unittest.TestCase):
                         self.assertFalse(l == m)
 
         circ,covered_points = circlecover.min_point_cover_greedy_with_fixed_discs(centers,line_endpoints)
-        printcover.printCover(line_endpoints,circ,centers,0,covered_segments,testName, FIXED_RADIUS)
+        printcover.printCover(bp,circ,centers,0,covered_segments,testName, FIXED_RADIUS)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         for point in line_endpoints:
@@ -109,17 +111,20 @@ class CircleCoverTest(unittest.TestCase):
             self.assertTrue(flag)
 
         testName = "testMinimumCircleSetCoverForLineSetGreedy2"
-        printcover.printCover(line_endpoints,circ,savedCentrs,0,segments,testName, VAR_RADIUS)
+        bp = excessarea.generate_bounding_polygon(line_endpoints,centers)
+        printcover.printCover(bp,circ,savedCentrs,0,segments,testName, VAR_RADIUS)
 
     def testMinimumCircleSetCoverForLineSetGreedy3(self):
         print("testMinimumCircleSetCoverForLineSetGreedy3")
         line_endpoints = [[20,80],[50,70]]
         centers = [(10,70),(30,60)]
-        circ = circlecover.min_area_cover_greedy(centers,line_endpoints)
+        polygon_to_cover = excessarea.generate_bounding_polygin(centers,line_endpoints)
+        circ = circlecover.min_area_cover_greedy(centers,polygon_to_cover)
         # check that for every line segment, both endpoints are covered by
         # at least one circle in our solution.
         testName = "testMinimumCircleSetCoverForLineSetGreedy3"
-        printcover.printCover(line_endpoints,circ,centers,0,[],testName, AREA_COVER)
+        bp = excessarea.generate_bounding_polygon(line_endpoints,centers)
+        printcover.printCover(bp,circ,centers,0,[],testName, AREA_COVER)
 
         for point in line_endpoints:
             flag = False
@@ -157,8 +162,8 @@ class CircleCoverTest(unittest.TestCase):
             line_segments.append(line.Line(line_endpoints[i],line_endpoints[i+1]))
         circ,included = circlecover.min_line_cover_greedy(centers,line_endpoints,min_center_distance = 20)
         testName = "LineCoverGreedyRandom"
-        printcover.printCover(line_endpoints,circ,centers,20,included,testName, VAR_RADIUS)
-
+        bp = excessarea.generate_bounding_polygon(line_endpoints,centers)
+        printcover.printCover(bp,circ,centers,20,included,testName, VAR_RADIUS)
        
         for point in line_endpoints:
             flag = False
@@ -190,7 +195,8 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
-        printcover.printCover(line_endpoints,circ,centers,20,[],testName, FIXED_RADIUS)
+        bp = excessarea.generate_bounding_polygon(line_endpoints,centers)
+        printcover.printCover(bp,circ,centers,20,[],testName, FIXED_RADIUS)
 
 
     def testVB(self):
@@ -230,9 +236,10 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
-
-        circ = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
-        printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
+        
+        polygon_to_cover = excessarea.generate_bounding_polygin(centers,line_endpoints)
+        circ = circlecover.min_area_cover_greedy(centers,polygon_to_cover,min_center_distance = 60)
+        printcover.printCover(polygon_to_cover,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -279,8 +286,10 @@ class CircleCoverTest(unittest.TestCase):
                     flag = True
                     break
             self.assertTrue(flag)
-        circ = circlecover.min_area_cover_greedy(centers,line_endpoints,min_center_distance = 60)
-        printcover.printCover(line_endpoints,circ,centers,60,[],testName,AREA_COVER)
+        
+        polygon = excessarea.generate_bounding_polygin(centers,line_endpoints)
+        circ = circlecover.min_area_cover_greedy(centers,polygon,min_center_distance = 60)
+        printcover.printCover(polygon,circ,centers,60,[],testName,AREA_COVER)
         for point in line_endpoints:
             flag = False
             for c in circ:
@@ -297,7 +306,9 @@ class CircleCoverTest(unittest.TestCase):
         """
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
-        circ = circlecover.min_area_cover_greedy(centers,interference_contour,min_center_distance=0)
+
+        polygon = excessarea.generate_bounding_polygon(centers,interference_contour)
+        circ = circlecover.min_area_cover_greedy(centers,polygon,min_center_distance=0)
         testName = "Estuary"
         printcover.printCover(interference_contour,circ,centers,0,[],testName,AREA_COVER)
         for point in interference_contour:
@@ -319,7 +330,8 @@ class CircleCoverTest(unittest.TestCase):
             self.assertTrue(flag)
 
         circ,included = circlecover.min_line_cover_greedy(centers,interference_contour,min_center_distance=0)
-        printcover.printCover(interference_contour,circ,centers,0,[],testName,VAR_RADIUS)
+        polygon = excessarea.generate_bounding_polygin(centers,line_endpoints)
+        printcover.printCover(polygon,circ,centers,0,[],testName,VAR_RADIUS)
         for point in interference_contour:
             flag = False
             for c in circ:

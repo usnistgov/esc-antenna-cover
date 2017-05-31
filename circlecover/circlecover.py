@@ -50,7 +50,7 @@ def distance(point1,point2):
 
 
 
-def min_area_cover_greedy(possible_centers, interference_contour, min_center_distance=0,ndivisions=100):
+def min_area_cover_greedy(possible_centers, polygon_to_cover, min_center_distance=0,ndivisions=100):
     """
     Greedy cover with variable sized discs with additional knot points added inside the
     interference contour that should be covered. This is an O(n^2) algorithm in ndivisions so the grid size
@@ -59,7 +59,7 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     Parameters:
 
         possible_centers : Set of locations (points) where sensors may be placed (typically on the shore line).
-        interference_contour: A set of points denoting the boundary of the area that must be protected.
+        polygon_to_cover: the polygon to cover.
         min_center_distance: The minimum distance between center locations that is permissible.
 
     Returns:
@@ -75,15 +75,10 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     Algorithm:
 
         Prepare the area:
-
-            1. Construct a polygon consisting of the possible_centers
-                and interference_contour.
-            2. Add additional points inside the constructed polygon so that the
+             Add additional points inside the constructed polygon so that the
                 entire area inside he polygon is covered.
 
-            Let the points constructed in the previous set
-            (including the interference_contour but not including possible_centers)
-            be denoted by interference_set
+            Let the points constructed in the previous set be denoted by interference_set
 
         Construct the cover for interference_set:
 
@@ -122,20 +117,11 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
 
 
     """
+    def generate_interference_set(mp,ndivs):
+        """
+        Generate the interference set for the bounding polygon.
+        """
 
-    def generate_interference_set(possible_centers, interference_contour,ndivs):
-        # Make a copy of the interference contour so we will not destroy our parameter list.
-        ifcontour = copy.copy(interference_contour)
-        # Create a multipoint polygon coonsisting of the original contour 
-        # and the possible centers
-        points = [point for point in interference_contour]
-        # The centers and the shore points are listed in the same sorted order
-        centers = copy.copy(possible_centers)
-        centers.reverse()
-        for point in centers:
-            points.append(point)
-        # The polygon encloses the interference contour as well as the shore.
-        mp = Polygon(points)
         # We will fill the polygon with a grid and cover all the points in
         # the grid.
         xmin = float(mp.bounds[0])
@@ -144,9 +130,6 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         ymax = float(mp.bounds[3])
 
         interference_set = []
-
-        for point in interference_contour:
-            interference_set.append(point)
         # ndivs is the number of divsions to break up the range (xmin,ymin,xmax,ymax)
         ndivs = ndivisions 
         deltaX = (xmax - xmin)/ndivs
@@ -159,7 +142,7 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
                 y = ymin + deltaY*j
                 if mp.contains(Point(x,y)):
                     interference_set.append((x,y))
-        return mp, interference_set
+        return interference_set
 
     def covers(cover,protected_polygon):
         union = cover[0].get_geometry()
@@ -169,6 +152,9 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
         return uncovered.area/protected_polygon.area < .005
 
     def eliminate_redundant_circles(cover,cover_polygon):
+        # Nothing to eliminate -- just return the original.
+        if len(cover) == 1 :
+            return cover
         indexes_to_remove = []
         for i in range(0,len(cover)):
             testcover = [ cover[j] for j in range(0,len(cover)) if j != i and j not in indexes_to_remove]
@@ -260,12 +246,13 @@ def min_area_cover_greedy(possible_centers, interference_contour, min_center_dis
     # Make a copy of the centers
     centers = copy.copy(possible_centers)
 
-    cover_polygon, interference_set = generate_interference_set(possible_centers,interference_contour,ndivisions)
+    interference_set = generate_interference_set(polygon_to_cover,ndivisions)
     # Now call the worker function to do the hard work.
     cover = min_area_cover_greedy_worker(centers, interference_set)
     # Return the set of the circles and the subset of points each one covers 
     # as computed by the algorithm. 
-    cover = eliminate_redundant_circles(cover,cover_polygon)
+    # pdb.set_trace()
+    # cover = eliminate_redundant_circles(cover,polygon_to_cover)
 
     print "nsensors ", len(cover)
 

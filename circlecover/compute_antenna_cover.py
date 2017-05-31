@@ -47,13 +47,14 @@ if __name__ == "__main__":
         p = (ship_loc_x[i],ship_loc_y[i])
         interference_contour.append(p)
 
+    bounding_polygon = excess_area.generate_bounding_polygon(possible_centers,interference_contour)
     testName = output_file
-    cover = antennacover.min_antenna_area_cover_greedy(possible_centers, interference_contour, coverage_file, min_center_distance=min_ctr_dist,tol=tol)
-    printcover.printAntennaCover(output_file, interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
+    cover = antennacover.min_antenna_area_cover_greedy(possible_centers, bounding_polygon, coverage_file, min_center_distance=min_ctr_dist,tol=tol)
+    printcover.printAntennaCover(output_file,bounding_polygon, possible_centers, cover,coverage_file,min_ctr_dist)
     if do_anneal:
-        annealr = simannealer.SimAnneal(interference_contour, possible_centers, coverage_file,cover,steps=args.anneal,tol=tol)
+        annealr = simannealer.SimAnneal(bounding_polygon, possible_centers, coverage_file,cover,steps=args.anneal,tol=tol)
         annealr.anneal()
         cover = annealr.get_result()
-        printcover.printAntennaCover(output_file + "Anneal", interference_contour, possible_centers, cover,coverage_file,60,min_ctr_dist)
+        printcover.printAntennaCover(output_file + "Anneal", bounding_polygon, possible_centers, cover,coverage_file,min_ctr_dist)
 
 

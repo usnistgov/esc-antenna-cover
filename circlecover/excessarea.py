@@ -9,6 +9,7 @@ import pdb
 import numpy as np
 import argparse
 import json
+import collections
 from collections import namedtuple
 
 def generate_bounding_polygon(possible_centers,interference_contour):
@@ -27,7 +28,7 @@ def generate_bounding_polygon(possible_centers,interference_contour):
     return mp
 
 def round2(val):
-    return int(np.round(val/.01))*.01
+    return round(val,2)
 
 def generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage):
     """ Generate the antenna cover rotated set of polygons """
@@ -41,7 +42,7 @@ def generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage):
     return polygons
 
 def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
-            possible_centers, interference_contour):
+            possible_centers, protected_region):
     """
     Parameters:
         indexes - the selected contours from detection_coverage_file
@@ -65,13 +66,12 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     
     # the bounding polygon representing the if-contour and the possible centers. This bounds the region that
     # needs to be covered.
-    bounding_polygon = generate_bounding_polygon(possible_centers,interference_contour)
 
     # Line string representing the interference contour. Add first and last point 
     # of possible_centers to this. This is the interference contour that is on the sea.
-    interference_contour.append(possible_centers[-1])
-    interference_contour.insert(0,possible_centers[0])
-    interference_contour_linestring = LineString(interference_contour)
+    interference_contour_linestring = LineString(protected_region)
+
+    protected_polygon = Polygon(protected_region)
     
     # Line string representing the possible sensor locations 
     possible_centers_linestring = LineString(possible_centers)
@@ -82,7 +82,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     cover_union = antenna_cover_polygons[0]
     for i in range(1,len(antenna_cover_polygons)):
         cover_union = cover_union.union(antenna_cover_polygons[i])
-    union = cover_union.union(bounding_polygon)
+    union = cover_union.union(interference_contour_linestring)
     minx,miny,maxx,maxy = union.bounds
 
     # Generate a point set and classify.
@@ -95,7 +95,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     for i in range(0,ndivs):
         for j in range(0,ndivs):
             p = Point(minx + i*deltax, miny + j*deltay)
-            if cover_union.contains(p) and not bounding_polygon.contains(p):
+            if cover_union.contains(p) and not protected_polygon.contains(p):
             #if point_covered_by_lobe(p,antenna_cover_polygons) and not bounding_polygon.contains(p):
                 # The point p is now either on sea or land.
                 d1 = interference_contour_linestring.distance(p)
@@ -105,13 +105,17 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
                 else:
                     excess_land_coverage_count = excess_land_coverage_count + 1
 
-    return (round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point))
+    outage = protected_polygon.difference(union).area
+
+    ExcessArea = namedtuple("ExcessArea","excess_sea_coverage excess_land_coverage outage_area protected_region")
+
+    return ExcessArea(round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point), outage, protected_polygon.area)
 
 
 
 
 
-def compute_excess_area_for_circle_cover(cover,possible_centers,interference_contour):
+def compute_excess_area_for_circle_cover(cover,possible_centers,protected_region):
     """
     compute the excess area for circle cover.
     Parameters:
@@ -119,16 +123,11 @@ def compute_excess_area_for_circle_cover(cover,possible_centers,interference_con
         interference_contour : The interference contour.
         possible_centers : The land loctions where the sensors may be placed.
     """
-    # the bounding polygon representing the if-contour and the possible centers. This bounds the region that
-    # needs to be covered.
-    bounding_polygon = generate_bounding_polygon(possible_centers,interference_contour)
 
     # Line string representing the interference contour. Add first and last point 
     # of possible_centers to this. This is the interference contour that is on the sea.
     # we add the two points to complete the polygon
-    interference_contour.append(possible_centers[-1])
-    interference_contour.insert(0,possible_centers[0])
-    interference_contour_linestring = LineString(interference_contour)
+    interference_contour_linestring = protected_region.extererior.coords
     
     # Line string representing the possible sensor locations 
     possible_centers_linestring = LineString(possible_centers)
@@ -161,7 +160,11 @@ def compute_excess_area_for_circle_cover(cover,possible_centers,interference_con
                 else:
                     excess_land_coverage_count = excess_land_coverage_count + 1
 
-    return (round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point))
+    
+    ExcessArea = namedtuple("ExcessArea","excess_sea_coverage excess_land_coverage outage_area protected_region")
+    outage = bounding_polygon.difference(union).area
+    protected_region = bounding_polygon.area
+    return ExcessArea(round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point),outage,protected_region)
                         
     
 
@@ -303,9 +306,11 @@ if __name__=="__main__":
             detection_coverage_file = result['detection_coverage_file']
             indexes = result["indexes"]
             angles = result["angles"]
+            points = zip(ic_x,ic_y)
+            bounding_polygon = Polygon(points)
             return compute_excess_area_for_antenna_cover(indexes,angles,centers,
-                        detection_coverage_file,possible_centers,interference_contour)
-        
+                        detection_coverage_file,possible_centers,bounding_polygon)
+
         
     def compute_excess_area_for_circle_cover_from_file(fileName):
         with open(fileName) as f :
@@ -323,26 +328,32 @@ if __name__=="__main__":
             return compute_excess_area_for_circle_cover(cover,possible_centers,interference_contour)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", default=None, help = "Result file for Antenna Cover")
+    parser.add_argument("-a", default=None, help = "Result file for Antenna Cover ")
+    parser.add_argument("-d", default=None, help = "Result file for Antenna Cover (DPA) ")
     parser.add_argument("-c", default=None, help = "Result file for circle cover")
     args = parser.parse_args()
 
-    if not args.a and not args.c :
+    if not args.a and not args.c  and not args.d:
         print "Need -a or -c flag. Try -h to see options"
         exit()
 
-    if args.a and args.c:
-        print "Cannot specify -a and -c flag. Try -h to see options"
-        exit()
-
+    json_result = {}
     if args.a:
         filename = args.a
-        excess_sea_area,excess_land_area = compute_excess_area_for_antenna_cover_from_result_file(filename)
-        print("excess_sea_area " +  str(excess_sea_area) + " excess_land_area " + str(excess_land_area))
+        result = compute_excess_area_for_antenna_cover_from_result_file(filename)
+        json_result["excess_sea_coverage"] = round2(result.excess_sea_coverage)
+        json_result["excess_land_coverage"] = round2(result.excess_land_coverage)
+        json_result["outage_area"] = round2(result.outage_area)
+        json_result["protected_area"] = round2(result.protected_region)
+        print(str(json.dumps(json_result)))
     else:
         filename = args.c
         excess_sea_area,excess_land_area = compute_excess_area_for_circle_cover_from_file(filename)
-        print("excess_sea_area " +  str(excess_sea_area) + " excess_land_area " + str(excess_land_area))
+        json_result["excess_sea_coverage"] = round2(result.excess_sea_coverage)
+        json_result["excess_land_coverage"] = round2(result.excess_land_coverage)
+        json_result["outage_area"] = round2(result.outage_area)
+        json_result["protected_area"] = round2(result.protected_region)
+        print(str(json.dumps(result)))
         
 
  
