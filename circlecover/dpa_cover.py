@@ -194,9 +194,10 @@ if __name__=="__main__":
                         antennacover.NDIVISIONS = 100
                         cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
 
-                        annealer = simannealer.SimAnneal(dpa_polygon, candidate_locs, detection_coverage_file,cover,steps = 1000,tol=.001)
+                        annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.001,coverage_units="m")
                         annealer.anneal()
                         newcover = annealer.get_result()
+                        #newcover = cover
 
                         f = kml.Folder(ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Placement')
                         feature2.append(f)

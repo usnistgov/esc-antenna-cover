@@ -235,10 +235,10 @@ class AntennaCoverTest(unittest.TestCase):
         min_ctr_dist = 0
         coverage_file = "DetectionCoverage_60deg.txt"
         testName = "Estuary"
-        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        poly = excessarea.generate_bounding_polygon(possible_centers,interference_contour)
         cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,coverage_file,min_center_distance=min_ctr_dist)
         printcover.printAntennaCover(testName, poly, possible_centers, cover,coverage_file,min_ctr_dist)
-        annealr = simannealer.SimAnneal(poly, possible_centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly, coverage_file,cover)
         annealr.anneal()
         testName = "EstuaryAnneal"
         improved_cover = annealr.get_result()
@@ -270,7 +270,7 @@ class AntennaCoverTest(unittest.TestCase):
         cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
         printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "SanFranciscoAnneal"
-        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly,coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, poly, centers, improved_cover,"DetectionCoverage_60deg.txt",min_ctr_dist)
@@ -299,7 +299,7 @@ class AntennaCoverTest(unittest.TestCase):
         cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
         printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "VirginiaBeachAnneal"
-        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly,coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, poly, centers, improved_cover,coverage_file,min_ctr_dist)
@@ -328,7 +328,7 @@ class AntennaCoverTest(unittest.TestCase):
         cover = antennacover.min_antenna_area_cover_greedy(centers,poly,coverage_file,min_center_distance = min_ctr_dist)
         printcover.printAntennaCover(testName, poly, centers, cover,coverage_file,min_ctr_dist)
         testName = "EastCoastAnneal"
-        annealr = simannealer.SimAnneal(poly, centers, coverage_file,cover)
+        annealr = simannealer.SimAnneal(poly,coverage_file,cover)
         annealr.anneal()
         improved_cover = annealr.get_result()
         printcover.printAntennaCover(testName, poly, centers, improved_cover,coverage_file,min_ctr_dist)
