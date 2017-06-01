@@ -37,16 +37,14 @@ class SimAnneal(Annealer):
         
     def compute_uncovered_ratio(self,cover_polygons):
         if len(cover_polygons) == 0:
-            return 1
-        try:
-            if not self.flag:
-                return self.bounding_polygon.difference(union).area/self.bounding_polygon.area
-            else:
-                return self.compute_uncovered_ratio1(self,cover_polygons)
-        except:
-            # bounding polygon is not a simple polygon. Revert back to point counting.
-            self.flag = True
-            return self.compute_uncovered_ratio1(cover_polygons)
+           return 1
+        if not self.flag:
+           union = cover_polygons[0]
+           for i in range(1,len(cover_polygons)):
+               union = union.union(cover_polygons[i])
+           return self.bounding_polygon.difference(union).area/self.bounding_polygon.area
+        else:
+           return self.compute_uncovered_ratio1(cover_polygons)
         
 
     def covers(self,cover_polygons):
@@ -154,8 +152,16 @@ class SimAnneal(Annealer):
         self.bounding_polygon = bounding_polygon
         # Generate test points for computing area differences (polygon difference does not always work)
         self.generate_test_points()
-        # Generate the test points to check for coverage.
-        ratio = self.compute_uncovered_ratio(self.cover_polygons)
+        try:
+            self.flag = False
+            # BUGBUG -- this is to compensate for a bug in the data set.
+            # Generate the test points to check for coverage.
+            ratio = self.compute_uncovered_ratio(self.cover_polygons)
+        except:
+            # bounding polygon is not a simple polygon. Revert back to point counting.
+            print "Exception -- fallback to slow routine"
+            self.flag = True
+            ratio =  self.compute_uncovered_ratio1(self.cover_polygons)
         # allow ourselves at least the given tolerance.
         self.max_ratio = max(ratio,tol)
         # The counter that allows us to step through the array of polygons repeatedly

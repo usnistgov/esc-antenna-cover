@@ -42,7 +42,7 @@ def generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage):
     return polygons
 
 def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_coverage_file,
-            possible_centers, protected_region):
+            possible_centers, protected_region,units="km"):
     """
     Parameters:
         indexes - the selected contours from detection_coverage_file
@@ -62,7 +62,7 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
 
 
     # load the detection coverage file.
-    detection_coverage = antennacover.read_detection_coverage(detection_coverage_file)
+    detection_coverage = antennacover.read_detection_coverage(detection_coverage_file,coverage_units=units)
     
     # the bounding polygon representing the if-contour and the possible centers. This bounds the region that
     # needs to be covered.
@@ -74,7 +74,10 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     protected_polygon = Polygon(protected_region)
     
     # Line string representing the possible sensor locations 
-    possible_centers_linestring = LineString(possible_centers)
+    if len(possible_centers) > 1:
+        possible_centers_linestring = LineString(possible_centers)
+    else:
+        possible_centers_linestring = Point(possible_centers[0])
 
     # the polygons representing the antenna shapes (rotated and translated)
     antenna_cover_polygons = generate_antenna_cover_polygons(indexes,angles,centers,detection_coverage)
@@ -92,6 +95,8 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
     
     excess_sea_coverage_count = 0
     excess_land_coverage_count = 0
+    outage_count = 0
+    polygon_area_count = 0
     for i in range(0,ndivs):
         for j in range(0,ndivs):
             p = Point(minx + i*deltax, miny + j*deltay)
@@ -104,12 +109,19 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
                     excess_sea_coverage_count = excess_sea_coverage_count + 1
                 else:
                     excess_land_coverage_count = excess_land_coverage_count + 1
+            if protected_polygon.contains(p):
+                polygon_area_count = polygon_area_count + 1
+                if not cover_union.contains(p):
+                    outage_count = outage_count + 1
+            
 
-    outage = protected_polygon.difference(union).area
+    # BUGBUG -- this does not always work because of BUGS with the data set (self intersecting polygons)
+    #outage = protected_polygon.difference(union).area
 
     ExcessArea = namedtuple("ExcessArea","excess_sea_coverage excess_land_coverage outage_area protected_region")
 
-    return ExcessArea(round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point), outage, protected_polygon.area)
+    return ExcessArea(round2(excess_sea_coverage_count*area_per_grid_point), round2(excess_land_coverage_count*area_per_grid_point), round2(outage_count*area_per_grid_point), 
+                    round2(polygon_area_count*area_per_grid_point))
 
 
 

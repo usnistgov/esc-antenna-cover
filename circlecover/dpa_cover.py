@@ -5,6 +5,7 @@ import sys
 import antennacover
 import math
 import simannealer
+import excessarea
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
@@ -151,10 +152,12 @@ if __name__=="__main__":
     parser.add_argument("-k", help="KML file for DPA coordinates")
     parser.add_argument("-f", help="Antenna coverage file")
     parser.add_argument("-e", default=None, help="Sensor placement exclusion region")
+    parser.add_argument("-d", default = None, help = "DPA id prefix for which to compute placement (optional) (eg. east_dpa_10km) ")
     args = parser.parse_args()
     dpa_file_name = args.k
     detection_coverage_file = args.f
     forbidden_region_files = args.e
+    dpa_name = args.d
     # Regions where we MAY NOT place sensors:
     forbidden_polygons = []
     if forbidden_region_files is not None:
@@ -173,7 +176,8 @@ if __name__=="__main__":
 
     kmlParser = kml.KML()
 
-    kmlDoc = kmlParser.from_string(datastring)
+    kmlParser.from_string(datastring)
+
 
     coast_coords_xy = pts_coast(basemap)
     counter = 0
@@ -187,18 +191,26 @@ if __name__=="__main__":
     for feature in kmlParser.features():
         for feature1 in feature.features():
             print "feature1.name = " + feature1.name
-            if feature1.name == "East DPA Centers" :
+            if feature1.name == "East DPA Centers" or feature1.name == "West DPA Centers":
                for feature2 in feature1.features():
                     print feature2.name
                     lon = feature2.geometry.x
                     lat = feature2.geometry.y
                     x,y = basemap(lon,lat)
                     dpa_centers.append((feature2.name,(x,y)))
-            elif feature1.name == "East DPAs":
+            elif feature1.name == "East DPAs" or feature1.name == "West DPAs":
                 for feature2 in feature1.features():
                     # east_dpa_10km_1
-                    if type(feature2) is fastkml.kml.Document and feature2.name.startswith("east_dpa_10km"):
+                    if type(feature2) is fastkml.kml.Document and dpa_name is None or feature2.name.startswith(dpa_name):
                         testName = "DPA : " + feature2.name
+
+                        sensorPlacement = kml.KML()
+                        ns = '{http://www.opengis.net/kml/2.2}'
+
+                        # Create a KML Document and add it to the KML root object
+                        placementDoc = kml.Document(ns, 'sensor_placement', 'Sensor Placement', 'Sensor Placement for DPA : ' + feature2.name)
+                        sensorPlacement.append(placementDoc)
+
                         print "Processing " + testName
                         for feature3 in feature2.features():
                             latitudes = [p[1] for p in feature3.geometry.coords]
@@ -213,7 +225,7 @@ if __name__=="__main__":
                                 # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
                                 extended_dpa_polygon = Polygon(dpa_locs).buffer((1+k*0.5)*10*1000) 
                                 candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
-                                if len(candidate_locs) < 5: 
+                                if len(candidate_locs) < 10: 
                                     K = K + 1 + k*0.5
                                     counter = counter+1
                                 else:
@@ -225,26 +237,28 @@ if __name__=="__main__":
                             
 
                             # Pick the top 10 candidate locations. 
-                            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
+                            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(Point(min_dpa_center)))
 
                             if len(candidate_locs) >= 5  :
                                  candidate_locs = candidate_locs[0:4]
+
 
                             # Add our dpa center to the candidate locations (not sure why).
                             candidate_locs.append(min_dpa_center)
 
                         assert len(candidate_locs) > 0
-                        #print candidate_locs
+                        print candidate_locs
                         antennacover.NDIVISIONS = 100
                         cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
-
+                        if len(cover) == 0:
+                            print "No cover found"
+                            continue
                         annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.001,coverage_units="m")
                         annealer.anneal()
                         newcover = annealer.get_result()
-                        #newcover = cover
 
                         f = kml.Folder(kmlParser.ns, 'Antennas_' + min_dpa_name, 'Antennas', 'Antenna Angles')
-                        feature2.append(f)
+                        placementDoc.append(f)
                         for c in newcover:
                             center = c[0]
                             index = c[1]
@@ -255,9 +269,18 @@ if __name__=="__main__":
                             p.name = feature2.name
                             f.append(p)
                             lobeId = lobeId + 1
+
+                        interference_contour = list(dpa_polygon.exterior.coords)
+                        indexes = [newcover[i][1] for i in range(0,len(newcover))]
+                        angles  = [newcover[i][2] for i in range(0,len(newcover))]
+                        cover_centers = [newcover[i][0] for i in range(0,len(newcover))]
+                        
+                        sea_excess_area,land_excess_area,outage_area,coverage_area = excessarea.compute_excess_area_for_antenna_cover(indexes, 
+                                        angles, cover_centers, detection_coverage_file, candidate_locs, interference_contour,units="m")
+
                         
                         f = kml.Folder(kmlParser.ns, 'Sensors_' + min_dpa_name, 'Sensors', 'Antenna Placement')
-                        feature2.append(f)
+                        placementDoc.append(f)
                         sensor_locs = list(set([c[0] for c in newcover]))
                         indexes = []
                         for sensor_loc in sensor_locs:
@@ -276,14 +299,22 @@ if __name__=="__main__":
                             sensorId = sensorId + 1
                             f.append(p)
 
+                        placementDoc.description = placementDoc.description + \
+                                                    "\n DPA Name " + feature2.name +\
+                                                    "\nsensor_count " + str(len(sensor_loc)) + \
+                                                    "\nsea_excess_area " + str(sea_excess_area) + \
+                                                    "\nland_excess_area " + str(land_excess_area) + \
+                                                    "\noutage_area " + str(outage_area) + \
+                                                    "\ntotal_coverage_area " + str(coverage_area)
+
                         dpa_counter = dpa_counter + 1
+                        with open(feature2.name + ".kml", 'w') as f:
+                            output = sensorPlacement.to_string(prettyprint=True)
+                            f.write(output)
                         print "Done " + testName
 
     print "**** DONE ************"
 
-    with open("output.kml", 'w') as f:
-        output = kmlParser.to_string(prettyprint=True)
-        f.write(output)
     
     
     print "average K ", float(K)/float(counter)

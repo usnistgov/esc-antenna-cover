@@ -52,6 +52,7 @@ from collections import namedtuple
 logger = logging.getLogger("circlecover")
 
 NDIVISIONS = 400
+OVERSHOOT_FACTOR=1.1
 
 def distance(point1,point2):
     """
@@ -206,9 +207,9 @@ def find_antenna_overlay_for_sector(points_to_cover, center, radius, detection_c
     radius = furthest_point_tuple[1]
     #min_angle = min([angle(center,p) for p in convex_hull])
     # note - second element of tuple is None. (Not a syntax error)
-    index = bisect.bisect_left(detection_coverage,(radius*1.2,))
+    index = bisect.bisect_left(detection_coverage,(radius*OVERSHOOT_FACTOR,))
     if index >= len(detection_coverage):
-        print("radius " + str(radius*1.2))
+        print("radius " + str(radius*OVERSHOOT_FACTOR))
         print("max_detection_coverage " + str(detection_coverage[len(detection_coverage) -1][0]))
         pdb.set_trace()
         raise Exception("Antenna Pattern could not be found")
