@@ -102,28 +102,68 @@ def distance(p1,p2):
 	
 
 
+def parse_forbidden_region(basemap,forbidden_file_name):
+    with open(forbidden_file_name, 'r') as f:
+        datastring = f.read()
+
+    poly = None
+    kmlParser = kml.KML()
+    kmlDoc = kmlParser.from_string(datastring)
+    for feature in kmlParser.features():
+        for feature1 in feature.features():
+            poly = feature1.geometry
+            coords = poly.exterior.coords
+            longs = [coords[i][0] for i in range(0,len(coords))]
+            lats =  [coords[i][1] for i in range(0,len(coords))] 
+            x,y = basemap(longs,lats, inverse = False)
+            return Polygon(zip(x,y))
+            
+            
+
+def is_forbidden_loc(loc,forbidden_polygons):
+    for polygon in forbidden_polygons:
+        if polygon.contains(Point(loc)):
+            print "istVerboten "
+            return True
+    return False
+
 
 if __name__=="__main__":
-    coast_coords = []
-    # East Coast
-    #coast_coords.append( [(-80.859375,25.165173),(-66.884766,44.840291)])
-    # Gulf Coast
-    #coast_coords.append( [(-97.646484,25.958045),(-80.947266,25.005973)])
-    # West Coast
-    #coast_coords.append( [(-117.070312,32.620870),(-124.892578,48.4000325)])
-	
-    # Put the lat_0 lon_0 at the geographic center of the USA
+    
+    # The following is not used explicitly in the code but is here for
+    # informational purposes.
+    # boundaries of the US East Coast
+    # [(-80.859375,25.165173),(-66.884766,44.840291)]
+    # boundaries of the US Gulf Coast
+    # [(-97.646484,25.958045),(-80.947266,25.005973)]
+    # boundaries of the US West Coast
+    # [(-117.070312,32.620870),(-124.892578,48.4000325)]
 
+    # Put the lat_0 lon_0 at the geographic center of the USA. Here are the extents of USA
     #-125.0011, 24.9493, -66.9326, 49.5904 Centroid:   -95.9669, 37.1669
 
-    # Lambert Conformal Conic Mapping Used for many new USGS maps created after 1957. It replaced the Polyconic projection.
+    # Lambert Conformal Conic Mapping Used for many new USGS maps created after 1957. 
+    # It replaced the Polyconic projection. However, we want to use
+    # an area preserving projection "hammer" and kav7 work well to preserve areas.
+
     basemap = Basemap(projection = 'hammer', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", help="KML file for DPA coordinates")
     parser.add_argument("-f", help="Antenna coverage file")
+    parser.add_argument("-e", default=None, help="Sensor placement exclusion region")
     args = parser.parse_args()
     dpa_file_name = args.k
     detection_coverage_file = args.f
+    forbidden_region_files = args.e
+    # Regions where we MAY NOT place sensors:
+    forbidden_polygons = []
+    if forbidden_region_files is not None:
+        forbidden_region_file_names = forbidden_region_files.split(",")
+        for i in range(0,len(forbidden_region_file_names)):
+            poly = parse_forbidden_region(basemap,forbidden_region_file_names[i])
+            forbidden_polygons.append(poly)
+        
+        
     if dpa_file_name is None or detection_coverage_file is None:
         parser.print_help()
         sys.exit()
@@ -134,13 +174,13 @@ if __name__=="__main__":
     kmlParser = kml.KML()
 
     kmlDoc = kmlParser.from_string(datastring)
-    ns = kmlParser.ns
 
     coast_coords_xy = pts_coast(basemap)
     counter = 0
     K = 0
     dpa_counter = 1
     lobeId = 0
+    sensorId = 0
     antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
     folders = []
     dpa_centers = []
@@ -153,11 +193,11 @@ if __name__=="__main__":
                     lon = feature2.geometry.x
                     lat = feature2.geometry.y
                     x,y = basemap(lon,lat)
-                    dpa_centers.append((x,y))
+                    dpa_centers.append((feature2.name,(x,y)))
             elif feature1.name == "East DPAs":
                 for feature2 in feature1.features():
                     # east_dpa_10km_1
-                    if type(feature2) is fastkml.kml.Document and feature2.name.startswith("east_dpa_10km_19"):
+                    if type(feature2) is fastkml.kml.Document and feature2.name.startswith("east_dpa_10km"):
                         testName = "DPA : " + feature2.name
                         print "Processing " + testName
                         for feature3 in feature2.features():
@@ -167,13 +207,13 @@ if __name__=="__main__":
                             dpa_locs = zip(x,y)
                             dpa_polygon = Polygon(dpa_locs)
                             # Determine the DPA center
-                            min_dpa_center = min(dpa_centers, key =  lambda t : Point(t).distance(dpa_polygon))
+                            min_dpa_name,min_dpa_center = min(dpa_centers, key =  lambda t : Point(t[1]).distance(dpa_polygon))
                             for k in range(0,100):
-                                # In some cases, 10 KM buffer does not result in any points.
-                                # 10 KM buffer do not consider ponts INSIDE the dpa to be candidate locations.
+                                # In some cases, 10 KM buffer does not result in any points or in very few points.
+                                # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
                                 extended_dpa_polygon = Polygon(dpa_locs).buffer((1+k*0.5)*10*1000) 
                                 candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
-                                if len(candidate_locs) < 20: 
+                                if len(candidate_locs) < 5: 
                                     K = K + 1 + k*0.5
                                     counter = counter+1
                                 else:
@@ -181,12 +221,16 @@ if __name__=="__main__":
                                     counter = counter + 1
                                     break
 
-                            print len(candidate_locs)
+                            candidate_locs = [ cand for cand in candidate_locs if not is_forbidden_loc(cand,forbidden_polygons) ]
+                            
+
+                            # Pick the top 10 candidate locations. 
                             candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
 
-                            if len(candidate_locs) >= 10  :
-                                 candidate_locs = candidate_locs[0:10]
+                            if len(candidate_locs) >= 5  :
+                                 candidate_locs = candidate_locs[0:4]
 
+                            # Add our dpa center to the candidate locations (not sure why).
                             candidate_locs.append(min_dpa_center)
 
                         assert len(candidate_locs) > 0
@@ -199,25 +243,46 @@ if __name__=="__main__":
                         newcover = annealer.get_result()
                         #newcover = cover
 
-                        f = kml.Folder(ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Placement')
+                        f = kml.Folder(kmlParser.ns, 'Antennas_' + min_dpa_name, 'Antennas', 'Antenna Angles')
                         feature2.append(f)
                         for c in newcover:
                             center = c[0]
                             index = c[1]
                             angle = c[2]
                             lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
-                            p = kml.Placemark(ns, "antenna"+str(lobeId), 'antenna', 'Index ' + str(index) + " Angle " + str(angle))
+                            p = kml.Placemark(kmlParser.ns, "antenna"+str(lobeId), 'antenna', 'Index ' + str(index) + " Angle " + str(angle))
                             p.geometry = xy_to_latlon(basemap,lobe)
                             p.name = feature2.name
                             f.append(p)
                             lobeId = lobeId + 1
+                        
+                        f = kml.Folder(kmlParser.ns, 'Sensors_' + min_dpa_name, 'Sensors', 'Antenna Placement')
+                        feature2.append(f)
+                        sensor_locs = list(set([c[0] for c in newcover]))
+                        indexes = []
+                        for sensor_loc in sensor_locs:
+                            for c in newcover:
+                                if c[0] == sensor_loc:
+                                    indexes.append(c[1])
+                                    break
+
+                        for i in range(0,len(sensor_locs)) :
+                            sensor_loc = sensor_locs[i]
+                            lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
+                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor:" + min_dpa_name, "Index " + str(indexes[i]))
+                            p.geometry = Point(lon,lat)
+                            p.styleUrl = "#msn_shaded_dot1"
+                            i = i + 1
+                            sensorId = sensorId + 1
+                            f.append(p)
+
                         dpa_counter = dpa_counter + 1
                         print "Done " + testName
 
     print "**** DONE ************"
 
     with open("output.kml", 'w') as f:
-        output = kmlParser.to_string()
+        output = kmlParser.to_string(prettyprint=True)
         f.write(output)
     
     
