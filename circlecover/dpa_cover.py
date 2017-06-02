@@ -6,6 +6,7 @@ import antennacover
 import math
 import simannealer
 import excessarea
+import os
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
@@ -155,6 +156,7 @@ if __name__=="__main__":
     parser.add_argument("-d", default = None, help = "DPA id prefix for which to compute placement (optional) (eg. east_dpa_10km) ")
     args = parser.parse_args()
     dpa_file_name = args.k
+    dpa_file_path = os.path.dirname(os.path.abspath(dpa_file_name))
     detection_coverage_file = args.f
     forbidden_region_files = args.e
     dpa_name = args.d
@@ -247,7 +249,6 @@ if __name__=="__main__":
                             candidate_locs.append(min_dpa_center)
 
                         assert len(candidate_locs) > 0
-                        print candidate_locs
                         antennacover.NDIVISIONS = 100
                         cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
                         if len(cover) == 0:
@@ -300,18 +301,19 @@ if __name__=="__main__":
                             f.append(p)
 
                         placementDoc.description = placementDoc.description + \
-                                                    "\n DPA Name " + feature2.name +\
-                                                    "\nsensor_count " + str(len(sensor_loc)) + \
+                                                    "\nDPA Name " + feature2.name +\
+                                                    "\nsensor_count " + str(len(sensor_locs)) + \
                                                     "\nsea_excess_area " + str(sea_excess_area) + \
                                                     "\nland_excess_area " + str(land_excess_area) + \
                                                     "\noutage_area " + str(outage_area) + \
                                                     "\ntotal_coverage_area " + str(coverage_area)
 
                         dpa_counter = dpa_counter + 1
-                        with open(feature2.name + ".kml", 'w') as f:
+                        
+                        with open(dpa_file_path + "/" + feature2.name + ".kml", 'w') as f:
                             output = sensorPlacement.to_string(prettyprint=True)
                             f.write(output)
-                        print "Done " + testName
+                        print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
 
     print "**** DONE ************"
 
