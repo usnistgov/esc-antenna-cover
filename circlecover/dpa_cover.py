@@ -7,6 +7,7 @@ import math
 import simannealer
 import excessarea
 import os
+import re
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
@@ -125,7 +126,7 @@ def parse_forbidden_region(basemap,forbidden_file_name):
 def is_forbidden_loc(loc,forbidden_polygons):
     for polygon in forbidden_polygons:
         if polygon.contains(Point(loc)):
-            print "istVerboten "
+            print "placement ist verboten!"
             return True
     return False
 
@@ -153,13 +154,16 @@ if __name__=="__main__":
     parser.add_argument("-k", help="KML file for DPA coordinates")
     parser.add_argument("-f", help="Antenna coverage file")
     parser.add_argument("-e", default=None, help="Sensor placement exclusion region")
-    parser.add_argument("-d", default = None, help = "DPA id prefix for which to compute placement (optional) (eg. east_dpa_10km) ")
+    parser.add_argument("-d", default = None, help = "DPA id regular expression for which to compute cover (eg. east_dpa_10km_* for all east_dpa)")
     args = parser.parse_args()
     dpa_file_name = args.k
     dpa_file_path = os.path.dirname(os.path.abspath(dpa_file_name))
     detection_coverage_file = args.f
     forbidden_region_files = args.e
-    dpa_name = args.d
+    if args.d is not None:
+        dpa_name = re.compile(args.d)
+    else:
+        dpa_name = None
     # Regions where we MAY NOT place sensors:
     forbidden_polygons = []
     if forbidden_region_files is not None:
@@ -190,6 +194,9 @@ if __name__=="__main__":
     antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
     folders = []
     dpa_centers = []
+    dpa_covers = []
+    dpa_polygons = []
+    total_area = 0
     for feature in kmlParser.features():
         for feature1 in feature.features():
             print "feature1.name = " + feature1.name
@@ -203,7 +210,7 @@ if __name__=="__main__":
             elif feature1.name == "East DPAs" or feature1.name == "West DPAs":
                 for feature2 in feature1.features():
                     # east_dpa_10km_1
-                    if type(feature2) is fastkml.kml.Document and dpa_name is None or feature2.name.startswith(dpa_name):
+                    if type(feature2) is fastkml.kml.Document and dpa_name is None or dpa_name.match(feature2.name):
                         testName = "DPA : " + feature2.name
 
                         sensorPlacement = kml.KML()
@@ -219,15 +226,16 @@ if __name__=="__main__":
                             longitudes = [p[0] for p in feature3.geometry.coords]
                             x,y = basemap(longitudes, latitudes)
                             dpa_locs = zip(x,y)
-                            dpa_polygon = Polygon(dpa_locs)
+                            # BUGBUG -- some polygons in the DPA are self intersecting.
+                            dpa_polygon = Polygon(dpa_locs).buffer(0)
                             # Determine the DPA center
                             min_dpa_name,min_dpa_center = min(dpa_centers, key =  lambda t : Point(t[1]).distance(dpa_polygon))
-                            for k in range(0,100):
+                            for k in range(0,500):
                                 # In some cases, 10 KM buffer does not result in any points or in very few points.
                                 # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
                                 extended_dpa_polygon = Polygon(dpa_locs).buffer((1+k*0.5)*10*1000) 
                                 candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
-                                if len(candidate_locs) < 10: 
+                                if len(candidate_locs) < 100: 
                                     K = K + 1 + k*0.5
                                     counter = counter+1
                                 else:
@@ -235,29 +243,40 @@ if __name__=="__main__":
                                     counter = counter + 1
                                     break
 
+                            # Exclude candidate locations that are in the forbidden regions
                             candidate_locs = [ cand for cand in candidate_locs if not is_forbidden_loc(cand,forbidden_polygons) ]
                             
+                            # Sort by distance from the closest DPA.
+                            #candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(Point(min_dpa_center)))
+                            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
 
-                            # Pick the top 10 candidate locations. 
-                            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(Point(min_dpa_center)))
-
-                            if len(candidate_locs) >= 5  :
-                                 candidate_locs = candidate_locs[0:4]
+                            # Pick the top 20 candidate locations that are closest to the DPA 
+                            if len(candidate_locs) >= 20  :
+                                 candidate_locs = candidate_locs[0:19]
 
 
-                            # Add our dpa center to the candidate locations (not sure why).
-                            candidate_locs.append(min_dpa_center)
 
                         assert len(candidate_locs) > 0
                         antennacover.NDIVISIONS = 100
-                        cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
-                        if len(cover) == 0:
-                            print "No cover found"
-                            continue
-                        annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.001,coverage_units="m")
-                        annealer.anneal()
-                        newcover = annealer.get_result()
 
+                        if dpa_polygon.area == 0:
+                            print "Empty dpa"
+                            continue
+
+                        cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
+
+
+                        if len(cover) > 1:
+                            # There isn't any point in annealing if you have only one lobe.
+                            annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.001,coverage_units="m")
+                            annealer.anneal()
+                            newcover = annealer.get_result()
+                        else:
+                            newcover = cover
+
+                        # Keep the cover around for later analysis.
+                        dpa_covers.append(newcover)
+                        dpa_polygons.append(dpa_polygon)
                         f = kml.Folder(kmlParser.ns, 'Antennas_' + min_dpa_name, 'Antennas', 'Antenna Angles')
                         placementDoc.append(f)
                         for c in newcover:
@@ -309,17 +328,37 @@ if __name__=="__main__":
                                                     "\ntotal_coverage_area " + str(coverage_area)
 
                         dpa_counter = dpa_counter + 1
+                        total_area = total_area + dpa_polygon.area
                         
                         with open(dpa_file_path + "/" + feature2.name + ".kml", 'w') as f:
                             output = sensorPlacement.to_string(prettyprint=True)
                             f.write(output)
                         print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
 
+    print "Computing intersection area "
+    
+    
+    intersection_area = 0
+    for i in range(0,len(dpa_covers)):
+        for j in range(0,len(dpa_covers)):
+            if j != i :
+                # The composite polygon is the union of all the lobes.
+                centers = [c[0] for c in dpa_covers[i]   ]
+                indexes = [c[1] for c in dpa_covers[i]   ]
+                angles =  [c[2] for c in dpa_covers[i]  ]
+                cover_polygons = excessarea.generate_antenna_cover_polygons(indexes,angles,centers,antenna_cover_patterns)
+                union = cover_polygons[0]
+                for k in range(1,len(cover_polygons)):
+                    union = union.union(cover_polygons[k])
+                diff = dpa_polygons[j].difference(dpa_polygons[j].difference(union)).area
+                intersection_area = intersection_area + diff
+
+    print "intersection_area " , intersection_area, " total_area ", total_area
+                
     print "**** DONE ************"
 
     
     
-    print "average K ", float(K)/float(counter)
                     
                     
             
