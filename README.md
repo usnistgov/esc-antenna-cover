@@ -134,6 +134,7 @@ http://www.scipy.org/install.html
 
 ### Installation 
 
+
 Now (for both Linux and Windows) run setup for the current package:
 
     python setup.py install
@@ -262,6 +263,36 @@ Gives the following output:
 
 
 Use the -c flag for circle (isotropic antenna) cover in the commands above.
+
+
+## DPA Cover
+
+The DOD has published protected regions along the coastline which need to be guarded by sensors.....
+
+Install the GDAL dependency on ubuntu: 
+
+    sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable
+    sudo apt-get update
+    sudo apt-get install python-gdal
+
+You may have to download the GDAL source from here:
+
+    https://trac.osgeo.org/gdal/wiki/DownloadSource
+
+And set 
+
+    export GDAL_DATA=/path/to/gdal/data
+
+So that python can find the projection data for Albers Equal Area Conic projection.
+
+Run it
+
+    python dpa_cover.py -k dpa.kml -e forbidden_regions.kml -f antenna_cover.json -d dpa_name
+
+
+View the output using google earth
+
+
 
 
 

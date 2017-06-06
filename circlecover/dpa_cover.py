@@ -17,87 +17,20 @@ from shapely.geometry import Polygon
 from shapely.geometry import Point
 from shapely.geometry import LineString
 import argparse
+from mapprojection import Projection
+#from epsgprojection import Projection
 
 
 
-# The desired projection is set with the projection keyword. Default is cyl. Supported values for the projection keyword are:
-# Value		Description
-# cea		Cylindrical Equal Area
-# mbtfpq	McBryde-Thomas Flat-Polar Quartic
-# aeqd		Azimuthal Equidistant
-# sinu		Sinusoidal
-# poly		Polyconic
-# omerc		Oblique Mercator
-# gnom		Gnomonic
-# moll		Mollweide
-# lcc		Lambert Conformal
-# tmerc		Transverse Mercator
-# nplaea	North-Polar Lambert Azimuthal
-# gall		Gall Stereographic Cylindrical
-# npaeqd	North-Polar Azimuthal Equidistant
-# mill		Miller Cylindrical
-# merc		Mercator
-# stere		Stereographic
-# eqdc		Equidistant Conic
-# rotpole	Rotated Pole
-# cyl		Cylindrical Equidistant
-# npstere	North-Polar Stereographic
-# spstere	South-Polar Stereographic
-# hammer	Hammer
-# geos		Geostationary
-# nsper		Near-Sided Perspective
-# eck4		Eckert IV
-# aea		Albers Equal Area
-# kav7		Kavrayskiy VII
-# spaeqd	South-Polar Azimuthal Equidistant
-# ortho		Orthographic
-# cass		Cassini-Soldner
-# vandg		van der Grinten
-# laea		Lambert Azimuthal Equal Area
-# splaea	South-Polar Lambert Azimuthal
-# robin		Robinson
-
-# For most map projections, the map projection region can either be specified by setting these keywords:
-
-# Keyword	Description
-# llcrnrlon	longitude of lower left hand corner of the desired map domain (degrees).
-# llcrnrlat	latitude of lower left hand corner of the desired map domain (degrees).
-# urcrnrlon	longitude of upper right hand corner of the desired map domain (degrees).
-# urcrnrlat	latitude of upper right hand corner of the desired map domain (degrees).
-	
-# or these
-
-# Keyword	Description
-# width		width of desired map domain in projection coordinates (meters).
-# height	height of desired map domain in projection coordinates (meters).
-# lon_0		center of desired map domain (in degrees).
-# lat_0		center of desired map domain (in degrees).
-
-# You can change the resolution of boundary database to use. Can be c (crude), l (low), i (intermediate), h (high), f (full). 
-# Coastline data is from the GSHHS (http://www.soest.hawaii.edu/wessel/gshhs/gshhs.html). 
-# State, country and river datasets from the Generic Mapping Tools (http://gmt.soest.hawaii.edu).
-
-# Following are the coastlines of the US.
-
-def pts_coast(basemap):
+def pts_coast(projection,basemap):
     coast_xy = []
     coastlines = basemap.drawcoastlines()
 	# Get the coordinates of coastlines
     coordinates = np.vstack(coastlines.get_segments())
     coast_lons, coast_lats = basemap(coordinates[:,0],coordinates[:,1], inverse = True)
-    x, y = basemap(coast_lons, coast_lats)
-    coast_xy = coast_xy + zip(x,y)
+    vals = projection.lons_lats_to_xy(coast_lons, coast_lats)
+    coast_xy = coast_xy + vals
     return coast_xy
-
-
-def xy_to_latlon(basemap,polygon):
-    xy_coords = list(polygon.exterior.coords)
-    xcoords = [xy_coords[i][0] for i in range(0,len(xy_coords))]
-    ycoords = [xy_coords[i][1] for i in range(0,len(xy_coords))]
-    zcoords = [0 for i in range(0,len(xy_coords))]
-    coast_lons, coast_lats = basemap(xcoords,ycoords, inverse = True)
-    return LineString(zip(coast_lons,coast_lats,zcoords))
-
 
 
 def distance(p1,p2):
@@ -105,7 +38,7 @@ def distance(p1,p2):
 	
 
 
-def parse_forbidden_region(basemap,forbidden_file_name):
+def parse_forbidden_region(porjection,forbidden_file_name):
     with open(forbidden_file_name, 'r') as f:
         datastring = f.read()
 
@@ -116,10 +49,9 @@ def parse_forbidden_region(basemap,forbidden_file_name):
         for feature1 in feature.features():
             poly = feature1.geometry
             coords = poly.exterior.coords
-            longs = [coords[i][0] for i in range(0,len(coords))]
+            lons = [coords[i][0] for i in range(0,len(coords))]
             lats =  [coords[i][1] for i in range(0,len(coords))] 
-            x,y = basemap(longs,lats, inverse = False)
-            return Polygon(zip(x,y))
+            return Polygon(projection.lons_lats_to_xy(lons,lats))
             
             
 
@@ -150,6 +82,9 @@ if __name__=="__main__":
     # an area preserving projection "hammer" and kav7 work well to preserve areas.
 
     basemap = Basemap(projection = 'hammer', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
+
+    projection = Projection(basemap)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", help="KML file for DPA coordinates")
     parser.add_argument("-f", help="Antenna coverage file")
@@ -169,7 +104,7 @@ if __name__=="__main__":
     if forbidden_region_files is not None:
         forbidden_region_file_names = forbidden_region_files.split(",")
         for i in range(0,len(forbidden_region_file_names)):
-            poly = parse_forbidden_region(basemap,forbidden_region_file_names[i])
+            poly = parse_forbidden_region(projection,forbidden_region_file_names[i])
             forbidden_polygons.append(poly)
         
         
@@ -184,8 +119,7 @@ if __name__=="__main__":
 
     kmlParser.from_string(datastring)
 
-
-    coast_coords_xy = pts_coast(basemap)
+    coast_coords_xy = pts_coast(projection,basemap)
     counter = 0
     K = 0
     dpa_counter = 1
@@ -205,8 +139,8 @@ if __name__=="__main__":
                     print feature2.name
                     lon = feature2.geometry.x
                     lat = feature2.geometry.y
-                    x,y = basemap(lon,lat)
-                    dpa_centers.append((feature2.name,(x,y)))
+                    xy = projection.lon_lat_to_xy(lon,lat)
+                    dpa_centers.append((feature2.name,xy))
             elif feature1.name == "East DPAs" or feature1.name == "West DPAs":
                 for feature2 in feature1.features():
                     # east_dpa_10km_1
@@ -228,8 +162,6 @@ if __name__=="__main__":
                             dpa_locs = zip(x,y)
                             # BUGBUG -- some polygons in the DPA are self intersecting.
                             dpa_polygon = Polygon(dpa_locs).buffer(0)
-                            # Determine the DPA center
-                            min_dpa_name,min_dpa_center = min(dpa_centers, key =  lambda t : Point(t[1]).distance(dpa_polygon))
                             for k in range(0,500):
                                 # In some cases, 10 KM buffer does not result in any points or in very few points.
                                 # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
@@ -247,7 +179,6 @@ if __name__=="__main__":
                             candidate_locs = [ cand for cand in candidate_locs if not is_forbidden_loc(cand,forbidden_polygons) ]
                             
                             # Sort by distance from the closest DPA.
-                            #candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(Point(min_dpa_center)))
                             candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
 
                             # Pick the top 20 candidate locations that are closest to the DPA 
@@ -277,7 +208,7 @@ if __name__=="__main__":
                         # Keep the cover around for later analysis.
                         dpa_covers.append(newcover)
                         dpa_polygons.append(dpa_polygon)
-                        f = kml.Folder(kmlParser.ns, 'Antennas_' + min_dpa_name, 'Antennas', 'Antenna Angles')
+                        f = kml.Folder(kmlParser.ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Angles')
                         placementDoc.append(f)
                         for c in newcover:
                             center = c[0]
@@ -285,7 +216,7 @@ if __name__=="__main__":
                             angle = c[2]
                             lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
                             p = kml.Placemark(kmlParser.ns, "antenna"+str(lobeId), 'antenna', 'Index ' + str(index) + " Angle " + str(angle))
-                            p.geometry = xy_to_latlon(basemap,lobe)
+                            p.geometry = projection.xy_to_latlon(lobe)
                             p.name = feature2.name
                             f.append(p)
                             lobeId = lobeId + 1
@@ -299,7 +230,7 @@ if __name__=="__main__":
                                         angles, cover_centers, detection_coverage_file, candidate_locs, interference_contour,units="m")
 
                         
-                        f = kml.Folder(kmlParser.ns, 'Sensors_' + min_dpa_name, 'Sensors', 'Antenna Placement')
+                        f = kml.Folder(kmlParser.ns, 'Sensors_' + feature2.name, 'Sensors', 'Antenna Placement')
                         placementDoc.append(f)
                         sensor_locs = list(set([c[0] for c in newcover]))
                         indexes = []
@@ -312,7 +243,7 @@ if __name__=="__main__":
                         for i in range(0,len(sensor_locs)) :
                             sensor_loc = sensor_locs[i]
                             lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
-                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor:" + min_dpa_name, "Index " + str(indexes[i]))
+                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor:" + feature2.name, "Index " + str(indexes[i]))
                             p.geometry = Point(lon,lat)
                             p.styleUrl = "#msn_shaded_dot1"
                             i = i + 1

@@ -73,11 +73,6 @@ setup(
     'License :: Public Domain',
     'Intended Audience :: NIST CTL',
     'Natural Language :: English',
-    'Programming Language :: Python :: 2.7',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.2',
-    'Programming Language :: Python :: 3.3',
-    'Programming Language :: Python :: 3.4',
   ],
-  install_requires = ['numpy', 'descartes','simanneal','fastkml'] #, 'png', 'freetype2.0'
+  install_requires = ['numpy', 'descartes','simanneal','fastkml','osr','basemap','matplotlib'] #, 'png', 'freetype2.0'
 )

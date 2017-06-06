@@ -36,6 +36,7 @@ import bisect
 import operator
 import excessarea
 import circle as ccle
+import json
 from line import Line
 import logging
 import circlecover
@@ -69,6 +70,36 @@ def pol2cart(r,theta):
 
 
 def read_detection_coverage(fileName,coverage_units="km"):
+    """
+    Read a bunch of antenna patterns and return an array of arrays containing the results.
+    Returns a set tuples. The first element of the tuple is the max reach of the antenna
+    The second element of the tuple is a polygon that gives the antenna shape.
+    """
+    results = []
+    f = open(fileName)
+    jsonStr = f.read()
+    jsonDoc = json.loads(jsonStr)
+    antennaPatterns = jsonDoc["antenna_cover"]
+    for ap in antennaPatterns:
+        polarLocations = ap["azimuth_deg"]
+        coverage = ap["coverage_km"]
+        sensitivityDbm = ap["sensitivity_dBm"]
+        thiscover = [pol2cart(coverage[j],polarLocations[j]) for j in range(0,len(polarLocations))]
+        if coverage_units=="m" :
+            thiscover = [(thiscover[i][0]*1000,thiscover[i][1]*1000) for i in range(0,len(thiscover))]
+        max_distance_covered = np.max(coverage) 
+        if coverage_units == "m":
+            max_distance_covered = max_distance_covered*1000
+        coverage_polygon = Polygon(thiscover)
+        # Attach it as a tuple of < max_distance_covered, coverage_polygon  >
+        cp  = namedtuple("cp",["max_coverage", "lobe","sensitivity_dbm"])
+        results.append(cp(max_distance_covered,coverage_polygon,sensitivityDbm))
+    results = sorted(results,key=lambda x : x[0])
+    return results
+
+
+
+def read_detection_coverage1(fileName,coverage_units="km"):
     """
     Read a bunch of antenna patterns and return an array of arrays containing the results.
     Returns a set tuples. The first element of the tuple is the max reach of the antenna
