@@ -194,7 +194,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        poly = excessarea.generate_bounding_polygon(possible_centers,interference_contour)
         cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"detection-coverage/ITMDetectionCoverage_60deg.json",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, poly, possible_centers, cover,"60deg",min_ctr_dist)
@@ -207,7 +207,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        poly = excessarea.generate_bounding_polygon(possible_centers,interference_contour)
         cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"detection-coverage/ITMDetectionCoverage_90deg.json",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, poly, possible_centers, cover,"90deg",min_ctr_dist)
@@ -220,7 +220,7 @@ class AntennaCoverTest(unittest.TestCase):
         interference_contour = [(20,55),(35,65),(40,60),(45,65),(50,55)]
         possible_centers = [(20,46),(25,30),(30,20),(40,15),(50,30),(60,50)]
         min_ctr_dist = 0
-        poly = excessarea.generate_bounding_polygon(centers,line_endpoints)
+        poly = excessarea.generate_bounding_polygon(possible_centers,interference_contour)
         cover = antennacover.min_antenna_area_cover_greedy(possible_centers,poly,"detection-coverage/ITMDetectionCoverage_120deg.json",min_center_distance=min_ctr_dist)
         testName = "Estuary"
         printcover.printAntennaCover(testName, poly, possible_centers, cover,"120deg",min_ctr_dist)

@@ -287,11 +287,10 @@ So that python can find the projection data for Albers Equal Area Conic projecti
 
 Run it
 
-    python dpa_cover.py -k dpa.kml -e forbidden_regions.kml -f antenna_cover.json -d dpa_name
+    python dpa_cover.py -k path/to/dpa.kml -e /path/to/forbidden_region1.kml,path/path_to/forbidden_region2.kml -f path/to/detection_coverage.json -d dpa_name_regexp
 
 
 View the output using google earth
-
 
 
 

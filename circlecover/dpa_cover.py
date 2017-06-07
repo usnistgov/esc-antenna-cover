@@ -160,8 +160,9 @@ if __name__=="__main__":
                             longitudes = [p[0] for p in feature3.geometry.coords]
                             x,y = basemap(longitudes, latitudes)
                             dpa_locs = zip(x,y)
-                            # BUGBUG -- some polygons in the DPA are self intersecting.
+                            # BUGBUG -- some polygons in the DPA are self intersecting. (e.g. dpa 29)
                             dpa_polygon = Polygon(dpa_locs).buffer(0)
+                            dpa_locs = dpa_polygon.exterior.coords
                             for k in range(0,500):
                                 # In some cases, 10 KM buffer does not result in any points or in very few points.
                                 # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
@@ -182,8 +183,8 @@ if __name__=="__main__":
                             candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
 
                             # Pick the top 20 candidate locations that are closest to the DPA 
-                            if len(candidate_locs) >= 20  :
-                                 candidate_locs = candidate_locs[0:19]
+                            if len(candidate_locs) >= 30  :
+                                 candidate_locs = candidate_locs[0:29]
 
 
 
@@ -215,7 +216,7 @@ if __name__=="__main__":
                             index = c[1]
                             angle = c[2]
                             lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
-                            p = kml.Placemark(kmlParser.ns, "antenna"+str(lobeId), 'antenna', 'Index ' + str(index) + " Angle " + str(angle))
+                            p = kml.Placemark(kmlParser.ns, "antenna"+str(lobeId), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) + "\nAngle " + str(angle))
                             p.geometry = projection.xy_to_latlon(lobe)
                             p.name = feature2.name
                             f.append(p)
@@ -243,7 +244,8 @@ if __name__=="__main__":
                         for i in range(0,len(sensor_locs)) :
                             sensor_loc = sensor_locs[i]
                             lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
-                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor:" + feature2.name, "Index " + str(indexes[i]))
+                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor: " + feature2.name, 
+                                            "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + "\nlon : " + str(lon) + " lat : " +  str(lat))
                             p.geometry = Point(lon,lat)
                             p.styleUrl = "#msn_shaded_dot1"
                             i = i + 1
@@ -284,7 +286,9 @@ if __name__=="__main__":
                 diff = dpa_polygons[j].difference(dpa_polygons[j].difference(union)).area
                 intersection_area = intersection_area + diff
 
+    ratio = intersection_area / total_area
     print "intersection_area " , intersection_area, " total_area ", total_area
+    print "Ratio of intersection to total area " , str(ratio)
                 
     print "**** DONE ************"
 
