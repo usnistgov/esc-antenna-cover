@@ -267,30 +267,19 @@ Use the -c flag for circle (isotropic antenna) cover in the commands above.
 
 ## DPA Cover
 
-The DOD has published protected regions along the coastline which need to be guarded by sensors.....
+The DOD has published protected regions along the coastline which need to be guarded by sensors. We use the algorithms above to place and position
+tight antenna covers for the DPAs regions. 
 
-Install the GDAL dependency on ubuntu: 
+Run it. For example:
 
-    sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable
-    sudo apt-get update
-    sudo apt-get install python-gdal
-
-You may have to download the GDAL source from here:
-
-    https://trac.osgeo.org/gdal/wiki/DownloadSource
-
-And set 
-
-    export GDAL_DATA=/path/to/gdal/data
-
-So that python can find the projection data for Albers Equal Area Conic projection.
-
-Run it
-
-    python dpa_cover.py -k path/to/dpa.kml -e /path/to/forbidden_region1.kml,path/path_to/forbidden_region2.kml -f path/to/detection_coverage.json -d dpa_name_regexp
+    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml -f ../test/detection-coverage/ITMDetectionCoverage_60deg.json -d east_dpa_10km
 
 
-View the output using google earth
+Computes the covers for the east coast. View the output using google earth
+
+- Install google-earth-pro 
+- Open the directory where the DPA defintiions exist. You will see a number of generated kml files. 
+  These kml files give you the locations and orientation of the antennas.
 
 
 
