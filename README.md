@@ -270,18 +270,36 @@ Use the -c flag for circle (isotropic antenna) cover in the commands above.
 The DOD has published protected regions along the coastline which need to be guarded by sensors. We use the algorithms above to place and position
 tight antenna covers for the DPAs regions. 
 
+You can get detailed help on this tool by using the -h switch:
+
+    usage: dpa_cover.py [-h] [-k K] [-f F] [-e E] [-d D]
+
+    optional arguments:
+        -h, --help  show this help message and exit
+        -k K        KML file for DPA coordinates
+        -f F        Antenna coverage file or directory containing multiple cover
+                    files. If a directory is specified then antenna covers are tried
+                    in increasing order of Aperture until a single sensor can cover
+                    the entire DPA OR the largest aperture has been reached.
+        -e E        Optionally specified sensor placement forbidden regions (comma
+                    separated).
+        -d D        DPA id regular expression for which to compute cover (eg.
+                    east_dpa_10km_* for all east_dpa). Leave out argument for ALL
+                    DPAs.
+
+
+
+
 Run it. For example:
 
-    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml -f ../test/detection-coverage/ITMDetectionCoverage_60deg.json -d east_dpa_10km
+    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml -f ../test/detection-coverage/ITMDetectionCoverage_60deg.json -d east_dpa_10km_[1,3,5]
 
-
-Computes the covers for the east coast. View the output using google earth
+Computes the covers for the east coast DPAs 1,3 and 5. 
+Results are placed in the same directory where All-DPA2.kml is found. View the output using google earth as follows :
 
 - Install google-earth-pro 
 - Open the directory where the DPA defintiions exist. You will see a number of generated kml files. 
   These kml files give you the locations and orientation of the antennas.
-
-
 
 
 

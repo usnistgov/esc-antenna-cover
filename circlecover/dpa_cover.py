@@ -88,9 +88,13 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", help="KML file for DPA coordinates")
-    parser.add_argument("-f", help="Antenna coverage files")
-    parser.add_argument("-e", default=None, help="Sensor placement exclusion region")
-    parser.add_argument("-d", default = None, help = "DPA id regular expression for which to compute cover (eg. east_dpa_10km_* for all east_dpa)")
+    parser.add_argument("-f", help="Antenna coverage file or directory containing multiple cover files.\n" + 
+                                    "If a directory is specified then antenna covers are tried in  \n " + 
+                                    "increasing order of  Aperture until a single sensor can cover the \n" + 
+                                    "entire DPA OR the largest aperture has been reached.")
+    parser.add_argument("-e", default=None, help="Optionally specified sensor placement forbidden regions (comma separated).")
+    parser.add_argument("-d", default = None, help = "DPA id regular expression for which to compute cover " +
+                                                    "(eg. east_dpa_10km_* for all east_dpa). Leave out argument for ALL DPAs.")
     args = parser.parse_args()
     dpa_file_name = args.k
     dpa_file_path = os.path.dirname(os.path.abspath(dpa_file_name))
