@@ -16,6 +16,7 @@ from optparse import OptionParser
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 from shapely.geometry import LineString
+from shapely.geometry import MultiPoint
 import argparse
 from mapprojection import Projection
 #from epsgprojection import Projection
@@ -161,7 +162,10 @@ if __name__=="__main__":
                             x,y = basemap(longitudes, latitudes)
                             dpa_locs = zip(x,y)
                             # BUGBUG -- some polygons in the DPA are self intersecting. (e.g. dpa 29)
-                            dpa_polygon = Polygon(dpa_locs).buffer(0)
+                            if not Polygon(dpa_locs).is_simple:
+                                dpa_polygon = Polygon(MultiPoint(dpa_locs).convex_hull)
+                            else:
+                                dpa_polygon = Polygon(dpa_locs)
                             dpa_locs = dpa_polygon.exterior.coords
                             for k in range(0,500):
                                 # In some cases, 10 KM buffer does not result in any points or in very few points.
