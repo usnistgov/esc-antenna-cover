@@ -101,7 +101,6 @@ def compute_excess_area_for_antenna_cover(indexes, angles, centers, detection_co
         for j in range(0,ndivs):
             p = Point(minx + i*deltax, miny + j*deltay)
             if cover_union.contains(p) and not protected_polygon.contains(p):
-            #if point_covered_by_lobe(p,antenna_cover_polygons) and not bounding_polygon.contains(p):
                 # The point p is now either on sea or land.
                 d1 = interference_contour_linestring.distance(p)
                 d2 = possible_centers_linestring.distance(p)

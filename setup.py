@@ -74,5 +74,5 @@ setup(
     'Intended Audience :: NIST CTL',
     'Natural Language :: English',
   ],
-  install_requires = ['numpy', 'descartes','simanneal','fastkml','osr','basemap','matplotlib'] #, 'png', 'freetype2.0'
+  install_requires = ['numpy', 'descartes','simanneal','fastkml','osr','basemap','matplotlib','basemap'] #, 'png', 'freetype2.0'
 )
