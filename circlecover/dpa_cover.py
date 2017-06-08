@@ -43,9 +43,9 @@ def parse_forbidden_region(porjection,forbidden_file_name):
         datastring = f.read()
 
     poly = None
-    kmlParser = kml.KML()
-    kmlDoc = kmlParser.from_string(datastring)
-    for feature in kmlParser.features():
+    kmlDoc = kml.KML()
+    kmlDoc.from_string(datastring)
+    for feature in kmlDoc.features():
         for feature1 in feature.features():
             poly = feature1.geometry
             coords = poly.exterior.coords
@@ -87,13 +87,13 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", help="KML file for DPA coordinates")
-    parser.add_argument("-f", help="Antenna coverage file")
+    parser.add_argument("-f", help="Antenna coverage files")
     parser.add_argument("-e", default=None, help="Sensor placement exclusion region")
     parser.add_argument("-d", default = None, help = "DPA id regular expression for which to compute cover (eg. east_dpa_10km_* for all east_dpa)")
     args = parser.parse_args()
     dpa_file_name = args.k
     dpa_file_path = os.path.dirname(os.path.abspath(dpa_file_name))
-    detection_coverage_file = args.f
+    detection_coverage_dir = args.f
     forbidden_region_files = args.e
     if args.d is not None:
         dpa_name = re.compile(args.d)
@@ -108,30 +108,30 @@ if __name__=="__main__":
             forbidden_polygons.append(poly)
         
         
-    if dpa_file_name is None or detection_coverage_file is None:
+    if dpa_file_name is None or detection_coverage_dir is None:
         parser.print_help()
         sys.exit()
         
     with open(dpa_file_name, 'r') as f:
         datastring = f.read()
 
-    kmlParser = kml.KML()
+    kmlDoc = kml.KML()
 
-    kmlParser.from_string(datastring)
+    kmlDoc.from_string(datastring)
 
     coast_coords_xy = pts_coast(projection,basemap)
     counter = 0
     K = 0
+    sensor_counter = 0
     dpa_counter = 1
     lobeId = 0
     sensorId = 0
-    antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
     folders = []
     dpa_centers = []
     dpa_covers = []
     dpa_polygons = []
     total_area = 0
-    for feature in kmlParser.features():
+    for feature in kmlDoc.features():
         for feature1 in feature.features():
             print "feature1.name = " + feature1.name
             if feature1.name == "East DPA Centers" or feature1.name == "West DPA Centers":
@@ -195,28 +195,53 @@ if __name__=="__main__":
                             print "Empty dpa"
                             continue
 
-                        cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.001,coverage_units="m")
+                        if os.path.isdir(detection_coverage_dir) :
+                            # Form a tuple list of aperture angle and detection coverage file name.
+                            # We want to apply increasing angles if there is more than one sensor in a DPA.
+                            detection_coverage_file_list = [(antennacover.read_aperture_angle(detection_coverage_dir+ "/" + dcf),detection_coverage_dir + "/" + dcf) 
+                                                for dcf in os.listdir(detection_coverage_dir)]
 
-
-                        if len(cover) > 1:
-                            # There isn't any point in annealing if you have only one lobe.
-                            annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.001,coverage_units="m")
-                            annealer.anneal()
-                            newcover = annealer.get_result()
+                            # Sort these in order of increasing antenna angle.
+                            sorted_detection_coverage_files = sorted(detection_coverage_file_list, key = lambda(t) : t[0])
+                            # Put the result in a list
+                            detection_coverage_files = [s[1]  for s in sorted_detection_coverage_files]
                         else:
-                            newcover = cover
+                            # We are given a single antenna cover file.
+                            detection_coverage_files = [detection_coverage_dir]
+                
+                            
+                        print "Antenna Detection Coverage files ", detection_coverage_files
+                        for detection_coverage_file in detection_coverage_files:
+                            aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
+                            antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
+                            cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
+
+                            if len(cover) > 1:
+                                # There isn't any point in annealing if you have only one lobe.
+                                annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
+                                annealer.anneal()
+                                newcover = annealer.get_result()
+                                if len(newcover) == 1:
+                                    break
+                            else:
+                                newcover = cover
+                                break
 
                         # Keep the cover around for later analysis.
                         dpa_covers.append(newcover)
                         dpa_polygons.append(dpa_polygon)
-                        f = kml.Folder(kmlParser.ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Angles')
+                        f = kml.Folder(kmlDoc.ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Angles')
                         placementDoc.append(f)
+                        feature2.append(f)
                         for c in newcover:
                             center = c[0]
                             index = c[1]
                             angle = c[2]
                             lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
-                            p = kml.Placemark(kmlParser.ns, "antenna"+str(lobeId), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) + "\nAngle " + str(angle))
+                            angle_degrees = (angle/math.pi*180)%360
+                            p = kml.Placemark(kmlDoc.ns, "antenna"+str(lobeId), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
+                                            + "\naperture angle " + str(aperture_angle)
+                                            + "\nAngle: " + str(angle)  + " rad " + str(angle_degrees) + " degrees. " )
                             p.geometry = projection.xy_to_latlon(lobe)
                             p.name = feature2.name
                             f.append(p)
@@ -231,8 +256,9 @@ if __name__=="__main__":
                                         angles, cover_centers, detection_coverage_file, candidate_locs, interference_contour,units="m")
 
                         
-                        f = kml.Folder(kmlParser.ns, 'Sensors_' + feature2.name, 'Sensors', 'Antenna Placement')
+                        f = kml.Folder(kmlDoc.ns, 'Sensors_' + feature2.name, 'Sensors', 'Antenna Placement')
                         placementDoc.append(f)
+                        feature2.append(f)
                         sensor_locs = list(set([c[0] for c in newcover]))
                         indexes = []
                         for sensor_loc in sensor_locs:
@@ -244,7 +270,7 @@ if __name__=="__main__":
                         for i in range(0,len(sensor_locs)) :
                             sensor_loc = sensor_locs[i]
                             lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
-                            p = kml.Placemark(kmlParser.ns,"sensor_" + str(sensorId), "sensor: " + feature2.name, 
+                            p = kml.Placemark(kmlDoc.ns,"sensor_" + str(sensorId), "sensor: " + feature2.name, 
                                             "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + "\nlon : " + str(lon) + " lat : " +  str(lat))
                             p.geometry = Point(lon,lat)
                             p.styleUrl = "#msn_shaded_dot1"
@@ -262,15 +288,20 @@ if __name__=="__main__":
 
                         dpa_counter = dpa_counter + 1
                         total_area = total_area + dpa_polygon.area
+                        sensor_counter = sensor_counter + len(sensor_locs)
                         
                         with open(dpa_file_path + "/" + feature2.name + ".kml", 'w') as f:
                             output = sensorPlacement.to_string(prettyprint=True)
                             f.write(output)
                         print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
 
+
+    with open(dpa_file_path + "/antenna-cover.kml","w") as f:
+        output = kmlDoc.to_string(prettyprint=True)
+        f.write(output)
+        
+    
     print "Computing intersection area "
-    
-    
     intersection_area = 0
     for i in range(0,len(dpa_covers)):
         for j in range(0,len(dpa_covers)):
@@ -289,6 +320,12 @@ if __name__=="__main__":
     ratio = intersection_area / total_area
     print "intersection_area " , intersection_area, " total_area ", total_area
     print "Ratio of intersection to total area " , str(ratio)
+
+    with open("analysis.txt",'w') as f:
+        f.write("intersection_area " + str(intersection_area) +  " total_area " + str(total_area) + "\n")
+        f.write("Ratio of intersection to total area "  +  str(ratio) + " (probability of 2 DPA's being activated with a single sensor)\n")
+        f.write("Sensor count " + str(sensor_counter) + "\n")
+            
                 
     print "**** DONE ************"
 
