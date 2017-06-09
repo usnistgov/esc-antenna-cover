@@ -30,5 +30,6 @@ from __future__ import absolute_import
 
 
 # Make version number available
+# This is for setup.py version number generation 
 from .version import __version_info__, __version__
 

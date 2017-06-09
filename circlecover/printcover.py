@@ -144,8 +144,9 @@ def printAntennaCover(testName, protected_region,
     result["sensor_count"] = len(sensor_loc)
     result["sensor_loc_x"] = sensor_loc_x
     result["sensor_loc_y"] = sensor_loc_y
+    angle = antennacover.read_aperture_angle(coverage_file)
 
-    output_file = testName + "AntennaCover." + str(coverage_file) + ".json"
+    output_file = testName + "AntennaCover." + str(angle) + ".json"
     f = open(output_file,"w")
     to_write = json.dumps(result,indent=4,sort_keys=True)
     f.write(to_write)
