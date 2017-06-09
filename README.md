@@ -1,7 +1,7 @@
 ## Geometric Circle-cover
 
-Greedy minimum cover from a set of center points covering a region. 
-
+Minimum cover from a set of points covering a region. With application to determinining the placement and orientation of antennas for 
+the proposed 3.5 GHz spectrum sharing deployment.
 
 
 ### Fixed radius point cover:
@@ -148,51 +148,6 @@ Now (for both Linux and Windows) run setup for the current package:
 
 See circlecover/test
 
-### MATLAB
-
-Add the circle-cover/circlecover directory to your matlab path.
-
-See the documentation help min\_isotropic\_area\_cover for usage.
-
-##### Example 1: 
-
-Min area circle cover (isotropic antenna) invoked from MATLAB:
-
-See the example in circlecover/test/CircleCoverTest.m :
-
-
-    esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,...
-        1762020,1759920,1753110,1741950,1752210,1757010,1761870,...
-        1768230,1772820,1777110,1781610,1786920,1793220];
-
-    esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,...
-        1767270,1756950,1746690,1735050,1727220,1717290,1707360,...
-        1697370,1687320,1677450,1667400,1657350,1647360];
-
-    ic_x = [1847012,1844913,1845660,1834150,1823280,1811715,...
-        1807512,1806671,1810710,1807769,1817910,1822503,1827218,...
-        1823623,1828432,1842183,1846928,1852378,1858591];
-
-    ic_y = [1843636,1833617,1823583,1811442,1799284,1787072,1777140,...
-        1767066,1759078,1749183,1741311,1731358,1721401,1709309,...
-        1699318,1691518,1681523,1671542,1661589];
-
-
-    esc_loc = [esc_loc_x',esc_loc_y'];
-
-    ic = [ic_x',ic_y'];
-
-    distance = 60;
-
-    [centers_x,centers_y,radius] = min_isotropic_area_cover(esc_loc,ic,distance);
-
-    disp('centers_x');
-    disp(centers_x);
-    disp('centers_y');
-    disp(centers_y);
-    disp('radius');
-    disp(radius);
-
 ### COMMAND LINE INTERFACE
 
 A command line interface to run the antenna cover and circle cover algorithms is provided. Here is an invocation example for running the antenna cover algorithm:
@@ -267,8 +222,8 @@ Use the -c flag for circle (isotropic antenna) cover in the commands above.
 
 ## DPA Cover
 
-The DOD has published protected regions along the coastline which need to be guarded by sensors. We use the algorithms above to place and position
-tight antenna covers for the DPAs regions. 
+The DOD has published protected regions along the coastline which need to be guarded by sensors (work in progress at the WinnForum). 
+We use the algorithms above to place and position antenna covers for the DPAs regions. The script that does this is called dpa\_cover.py.
 
 You can get detailed help on this tool by using the -h switch:
 
@@ -293,16 +248,70 @@ You can get detailed help on this tool by using the -h switch:
 
 Run it. For example:
 
-    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml -f ../test/detection-coverage/ITMDetectionCoverage_60deg.json -d east_dpa_10km_[1,3,5]
+    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml -f ../test/detection-coverage/ITMDetectionCoverage_60deg.json -d east_dpa_10km_* -o test-results
 
-Computes the covers for the east coast DPAs 1,3 and 5. 
-Results are placed in the same directory where All-DPA2.kml is found. View the output using google earth as follows :
 
-- Install google-earth-pro 
-- Open the directory where the DPA defintiions exist. You will see a number of generated kml files. 
+Computes the covers for the east coast DPAs.  View the output using google earth as follows :
+
+- Install google-earth-pro (its free!) 
+- Open the directory where the results were generated.
+  You will see a number of generated kml files 
   These kml files give you the locations and orientation of the antennas.
 
 
+If you want to reduce the number of sensors, try
+
+    python ../dpa_cover.py -k All-DPA2.kml -e forbidden-region-northeast.kml,forbidden-region-carribean.kml,gulf-forbidden.kml -f ../test/detection-coverage -d east_dpa_10km_* -o test-results
+
+This will try successively bigger aperture angles in an attempt to reduce the number of sensors per DPA.
+
+
+### MATLAB Interface (deprecated)
+
+Add the circle-cover/circlecover directory to your matlab path.
+
+See the documentation help min\_isotropic\_area\_cover for usage.
+
+This interface will not be tested in future releases of this tool. 
+
+##### Example 1: 
+
+Min area circle cover (isotropic antenna) invoked from MATLAB:
+
+See the example in circlecover/test/CircleCoverTest.m :
+
+
+    esc_loc_x = [1771380,1769310,1769790,1768380,176739,1764690,...
+        1762020,1759920,1753110,1741950,1752210,1757010,1761870,...
+        1768230,1772820,1777110,1781610,1786920,1793220];
+
+    esc_loc_y = [1827030,1817070,1806990,1797090,1787100,1776840,...
+        1767270,1756950,1746690,1735050,1727220,1717290,1707360,...
+        1697370,1687320,1677450,1667400,1657350,1647360];
+
+    ic_x = [1847012,1844913,1845660,1834150,1823280,1811715,...
+        1807512,1806671,1810710,1807769,1817910,1822503,1827218,...
+        1823623,1828432,1842183,1846928,1852378,1858591];
+
+    ic_y = [1843636,1833617,1823583,1811442,1799284,1787072,1777140,...
+        1767066,1759078,1749183,1741311,1731358,1721401,1709309,...
+        1699318,1691518,1681523,1671542,1661589];
+
+
+    esc_loc = [esc_loc_x',esc_loc_y'];
+
+    ic = [ic_x',ic_y'];
+
+    distance = 60;
+
+    [centers_x,centers_y,radius] = min_isotropic_area_cover(esc_loc,ic,distance);
+
+    disp('centers_x');
+    disp(centers_x);
+    disp('centers_y');
+    disp(centers_y);
+    disp('radius');
+    disp(radius);
 
 
 ## Disclaimers
