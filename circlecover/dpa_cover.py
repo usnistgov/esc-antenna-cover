@@ -82,7 +82,7 @@ if __name__=="__main__":
     # It replaced the Polyconic projection. However, we want to use
     # an area preserving projection "hammer" and kav7 work well to preserve areas.
 
-    basemap = Basemap(projection = 'kav7', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
+    basemap = Basemap(projection = 'hammer', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
 
     projection = Projection(basemap)
 
@@ -347,7 +347,7 @@ if __name__=="__main__":
                         print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
 
 
-    with open(dpa_file_path + "/antenna-cover.kml","w") as f:
+    with open(output_directory + "/antenna-cover.kml","w") as f:
         output = kmlDoc.to_string(prettyprint=True)
         f.write(output)
         
