@@ -15,7 +15,7 @@ class Projection :
         # Convert from projected coordinates to (longitude, latitude)
         self.inv_transform = osr.CoordinateTransformation(XYSpatialRef, LatLonSpatialRef)
 
-    def xy_to_latlon(self,polygon):
+    def polygon_to_latlon(self,polygon):
         xy_coords = list(polygon.exterior.coords)
         xcoords = [xy_coords[i][0] for i in range(0,len(xy_coords))]
         ycoords = [xy_coords[i][1] for i in range(0,len(xy_coords))]

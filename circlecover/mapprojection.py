@@ -75,10 +75,14 @@ class Projection :
         return zip(x,y)
 
 
-    def xy_to_latlon(self,polygon):
+    def polygon_to_latlon(self,polygon):
         xy_coords = list(polygon.exterior.coords)
         xcoords = [xy_coords[i][0] for i in range(0,len(xy_coords))]
         ycoords = [xy_coords[i][1] for i in range(0,len(xy_coords))]
         zcoords = [0 for i in range(0,len(xy_coords))]
         coast_lons, coast_lats = self.basemap(xcoords,ycoords, inverse = True)
         return LineString(zip(coast_lons,coast_lats,zcoords))
+
+    def xy_to_lonlat(self,x,y):
+        lon, lat = self.basemap(x,y, inverse = True)
+        return lon,lat

@@ -93,8 +93,8 @@ if __name__=="__main__":
                                     "increasing order of  Aperture until a single sensor can cover the \n" + 
                                     "entire DPA OR the largest aperture has been reached.")
     parser.add_argument("-e", default=None, help="Optionally specified sensor placement forbidden regions (comma separated).")
-    parser.add_argument("-d", default = None, help = "DPA id regular expression for which to compute cover " +
-                                                    "(eg. east_dpa_10km_* for all east_dpa). Leave out argument for ALL DPAs.")
+    parser.add_argument("-d", default = "west_dpa_10km", help = "DPA id regular expression for which to compute cover " +
+                                                    "(eg. east_dpa_10km_* for all east_dpa).")
     parser.add_argument("-o",default="./", help="Output file path to directory where you want the resultant kml " + 
                                                 "files to be written (default is current directory)")
     args = parser.parse_args()
@@ -130,8 +130,8 @@ if __name__=="__main__":
 
     kmlDoc.from_string(datastring)
 
+    # Get the coastal coordinates from the basemap
     coast_coords_xy = pts_coast(projection,basemap)
-    counter = 0
     K = 0
     sensor_counter = 0
     dpa_counter = 1
@@ -195,10 +195,8 @@ if __name__=="__main__":
                                 candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
                                 if len(candidate_locs) < 100: 
                                     K = K + 1 + k*0.5
-                                    counter = counter+1
                                 else:
                                     K = K + 1
-                                    counter = counter + 1
                                     break
 
                             # Exclude candidate locations that are in the forbidden regions
@@ -271,9 +269,9 @@ if __name__=="__main__":
                                 
                             angle_degrees = (angle/math.pi*180)%360
                             p = kml.Placemark(kmlDoc.ns, "antenna"+str(lobeId), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
-                                            + "\naperture angle " + str(aperture_angle)
-                                            + "\nAngle: " + str(angle)  + " rad " + str(angle_degrees) + " degrees. " )
-                            p.geometry = projection.xy_to_latlon(lobe)
+                                            + "\nAperture angle " + str(aperture_angle)
+                                            + "\nAzimuth angle: " + str(float(np.round(angle,2)))  + " rad " + str(float(np.round(angle_degrees,2))) + " degrees. " )
+                            p.geometry = projection.polygon_to_latlon(lobe)
                             p.name = feature2.name
                             f.append(p)
                             lobeId = lobeId + 1
@@ -333,9 +331,9 @@ if __name__=="__main__":
                         placementDoc.description = placementDoc.description + \
                                                     "\nDPA Name " + feature2.name +\
                                                     "\nsensor_count " + str(len(sensor_locs)) + \
-                                                    "\nexcess_area (sq. m): " + str(excess_area) + \
-                                                    "\noutage_area (sq. m): " + str(outage_area) + \
-                                                    "\ndpa_area (sq. m): " + str(coverage_area)
+                                                    "\nexcess_area (sq. m): " + str(float(np.round(excess_area,2))) + \
+                                                    "\noutage_area (sq. m): " + str(float(np.round(outage_area,2))) + \
+                                                    "\ndpa_area (sq. m): " + str(float(np.round(coverage_area,2)))
 
                         dpa_counter = dpa_counter + 1
                         total_area = total_area + dpa_polygon.area
@@ -367,13 +365,62 @@ if __name__=="__main__":
                 # region not belonging to it).
                 intersecting_area = intersecting_area + antenna_cover.intersection(dpa_polygons[i]).area
 
+
     ratio = intersecting_area / total_area
+
     print "intersection_area " , intersecting_area, " total_area ", total_area
     print "Ratio of intersection to total area " , str(ratio)
 
+    # Now compute the excess coverage that is not in a DPA that is in the sea. This is 
+    # The false alarm ratio. 
+
+    cover_union = antenna_lobes[0]
+
+    for i in range(1, len(antenna_lobes)):
+        cover_union = cover_union.union(antenna_lobes[i])
+
+    dpa_polygons_union = dpa_polygons[0]
+    
+    for i in range(1,len(dpa_polygons)):
+        dpa_polygons_union = dpa_polygons_union.union(dpa_polygons[i])
+
+    minx,miny,maxx,maxy = cover_union.bounds
+    
+    NDIVISIONS_X = 200
+    NDIVISIONS_Y = 400
+
+    deltax = (maxx - minx)/NDIVISIONS_X
+    deltay =  (maxy - miny)/NDIVISIONS_Y
+    sea_excess_area_counter = 0
+    total_area_counter = 0
+
+    grid_point_area = abs((maxx-minx)*(maxy-miny)) / (NDIVISIONS_X*NDIVISIONS_Y)
+    
+    coast_coords_linestring = LineString(coast_coords_xy)
+    for i in range(0,NDIVISIONS_X):
+        for j in range(0,NDIVISIONS_Y):
+            x,y = minx + i*deltax, miny + j*deltay
+            p = Point(x,y)
+            if cover_union.contains(Point(x,y)) or dpa_polygons_union.contains(Point(x,y)) :
+                total_area_counter = total_area_counter + 1
+                if not dpa_polygons_union.contains(p):
+                    # Check if the point is on the sea and beyond 10 km from shore
+                    if not basemap.is_land(x,y) and p.distance(coast_coords_linestring) > 10*1000 :
+                        # This is a point in the sea. Lets check if the point is close to land.
+                        sea_excess_area_counter = sea_excess_area_counter + 1
+
+    sea_excess_area = sea_excess_area_counter*grid_point_area
+    total_area =  total_area_counter*grid_point_area
+    false_detection_probability = np.round(sea_excess_area/total_area,2)
+
+    
+
     with open( output_directory + "/analysis.txt",'w') as f:
-        f.write("intersection_area " + str(intersecting_area) +  " total_area " + str(total_area) + "\n")
-        f.write("Ratio of intersection to total area "  +  str(ratio) + " (probability of 2 DPA's being activated with a single sensor)\n")
+        f.write("t : total_dpa_area (sq. m) = " + str(float(np.round(total_area,2))) + "\n")
+        f.write("s : Sensor area outside DPA of sensor covered by DPA (total) (sq. m) =  " + str(float(np.round(intersecting_area,2))) + "\n") 
+        f.write("Probability redundant DPA activation (s/t)  =  "  +  str(float(np.round(ratio,2))) + "\n\n")
+        f.write("k : Sea Excess Area " + str(float(np.round(sea_excess_area,2))) + "\n")
+        f.write("Probability of false detection ( sea excess Area to total DPA area (k/t) ) =  " + str(false_detection_probability) + "\n\n")
         f.write("Sensor count " + str(sensor_counter) + "\n")
             
                 
