@@ -239,8 +239,8 @@ You can get detailed help on this tool by using the -h switch:
         -e E        Optionally specified sensor placement forbidden regions (comma
                     separated).
         -d D        DPA id regular expression for which to compute cover (eg.
-                    east_dpa_10km_* for all east_dpa). Leave out argument for ALL
-                    DPAs.
+                    east_dpa_10km_* for all east_dpa). This expression should 
+                    start with east_dpa or west_dpa. 
         -o O        Directory where you want results to go.
 
 
