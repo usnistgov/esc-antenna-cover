@@ -36,6 +36,7 @@ import simannealer
 import excessarea
 import os
 import re
+import string
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
@@ -48,6 +49,7 @@ from shapely.geometry import MultiPoint
 from shapely.ops import polygonize, unary_union
 import argparse
 from mapprojection import Projection
+from pykml import parser as kml_parser
 #from epsgprojection import Projection
 
 
@@ -139,6 +141,7 @@ if __name__=="__main__":
         parser.print_help()
         sys.exit()
 
+    print "---- args.d = ", args.d
     dpa_regexp = re.compile(args.d)
 
     # Make a directory to keep the results.
@@ -167,6 +170,10 @@ if __name__=="__main__":
 
     # Parse the DPA definition file.
     kmlDoc.from_string(datastring)
+    feature = list(kmlDoc.features())
+    print "---- features ", len(feature), feature[0].name
+    feature1 = list(feature[0].features())
+    print "---- features1.name ", len(feature1), feature1[0].name
 
     # Get the coastal coordinates from the basemap
     coast_coords_xy = pts_coast(projection,basemap)
@@ -184,226 +191,241 @@ if __name__=="__main__":
     # Each element of this array is a union of polygons that covers the corresponding dpa_polygon
     antenna_lobes = []
     total_area = 0
-    for feature in kmlDoc.features():
-        for feature1 in feature.features():
-            print "feature1.name = " + feature1.name
-            if feature1.name == "East DPA Centers" or feature1.name == "West DPA Centers":
-               for feature2 in feature1.features():
-                    print feature2.name
-                    lon = feature2.geometry.x
-                    lat = feature2.geometry.y
-                    xy = projection.lon_lat_to_xy(lon,lat)
-                    dpa_centers.append((feature2.name,xy))
-            elif feature1.name == "East DPAs" or feature1.name == "West DPAs":
-                for feature2 in feature1.features():
-                    # The name identifies the feature.
-                    if type(feature2) is fastkml.kml.Document and  dpa_regexp.match(feature2.name):
-                        testName = "DPA : " + feature2.name
+    
+    root = kml_parser.fromstring(datastring)
+    print "---- all", root.Folder.name.text
+    #dpa_id = root.Folder.Document.name.text
+    #print "dpa_id ", root.Folder.Document.name.text
+    feature_index = 0
+    for Doc in root.Folder.Document:
+        #print "---- coord ", Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates
+        dpa_id = Doc.name.text
+        print "---- dpa_id ", dpa_id
+        if dpa_regexp.match(dpa_id):
+            print "------- matched dpa ------ ", dpa_id
+#            if type(feature1) is fastkml.kml.Document and  dpa_regexp.match(feature1.name):
+            testName = "DPA : " + dpa_id
+            print "Processing " + dpa_id
+            sensorPlacement = kml.KML()
+            ns = '{http://www.opengis.net/kml/2.2}'
 
-                        sensorPlacement = kml.KML()
-                        ns = '{http://www.opengis.net/kml/2.2}'
+            # Create a KML Document and add it to the KML root object
+            placementDoc = kml.Document(ns, 'sensor_placement', 'Sensor Placement', 'Sensor Placement for DPA : ' + dpa_id)
+            sensorPlacement.append(placementDoc)
+            p = Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text
+            coord = string.split(p)
+            print "------ coord = ", coord
+            
+            latitudes =[]
+            longitudes =[]
+            for p in string.split(Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text):
+                pts = string.split(p, ',')
+                latitudes.append(float(pts[0]))
+                longitudes.append(float(pts[1]))
+            print "---- lats  ", latitudes
+            #latitudes = [string.split(p, ',') for p in string.split(Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text)]
+            #longitudes = [p[0] for p in Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates]
+            x,y = basemap(longitudes, latitudes)
+            dpa_locs = zip(x,y)
+            #some polygons in the DPA are self intersecting. (e.g. dpa 29) 
+            #so we split these into polygons and take the largest polygon
+            #pdb.set_trace()
+            ls = LineString(dpa_locs)     
+            mls = unary_union(ls)
+            max_area = -1
+            dpa_polygon = None
+            # Use the biggest polygon 
+            # Polygonize returns an iterator of polygons formed from the lines.
+            # Pick the biggest polygon and use it to represent the DPA
+            for p in polygonize(mls):
+                if p.area > max_area:
+                    dpa_polygon = p.buffer(0)
+                    max_area = p.area
 
-                        # Create a KML Document and add it to the KML root object
-                        placementDoc = kml.Document(ns, 'sensor_placement', 'Sensor Placement', 'Sensor Placement for DPA : ' + feature2.name)
-                        sensorPlacement.append(placementDoc)
+            print "------ polygon area ------ ", dpa_polygon.area
+            dpa_locs = dpa_polygon.exterior.coords
+            for k in range(0,500):
+                # In some cases, 10 KM buffer does not result in any points or in very few points.
+                # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
+                extended_dpa_polygon = dpa_polygon.buffer((1+k*0.5)*10*1000) 
+                candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
+                if len(candidate_locs) >= 100: 
+                    break
 
-                        print "Processing " + testName
-                        for feature3 in feature2.features():
-                            latitudes = [p[1] for p in feature3.geometry.coords]
-                            longitudes = [p[0] for p in feature3.geometry.coords]
-                            x,y = basemap(longitudes, latitudes)
-                            dpa_locs = zip(x,y)
-                            #some polygons in the DPA are self intersecting. (e.g. dpa 29) 
-                            #so we split these into polygons and take the largest polygon
-                            ls = LineString(dpa_locs)     
-                            mls = unary_union(ls)
-                            max_area = -1
-                            dpa_polygon = None
-                            # Use the biggest polygon 
-                            # Polygonize returns an iterator of polygons formed from the lines.
-                            # Pick the biggest polygon and use it to represent the DPA
-                            for p in polygonize(mls):
-                                 if p.area > max_area:
-                                     dpa_polygon = p.buffer(0)
-                                     max_area = p.area
+            # Exclude candidate locations that are in the forbidden regions
+            candidate_locs = [ cand for cand in candidate_locs if not is_forbidden_loc(cand,forbidden_polygons) ]
+            
+            # Sort by distance from the closest DPA.
+            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
 
-                            dpa_locs = dpa_polygon.exterior.coords
-                            for k in range(0,500):
-                                # In some cases, 10 KM buffer does not result in any points or in very few points.
-                                # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
-                                extended_dpa_polygon = dpa_polygon.buffer((1+k*0.5)*10*1000) 
-                                candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
-                                if len(candidate_locs) >= 100: 
-                                    break
-
-                            # Exclude candidate locations that are in the forbidden regions
-                            candidate_locs = [ cand for cand in candidate_locs if not is_forbidden_loc(cand,forbidden_polygons) ]
-                            
-                            # Sort by distance from the closest DPA.
-                            candidate_locs = sorted(candidate_locs,key = lambda t : Point(t).distance(dpa_polygon))
-
-                            # HACK ALERT Pick the top 30 candidate locations that are closest to the DPA in terms of distance
-                            if len(candidate_locs) >= 30  :
-                                 candidate_locs = candidate_locs[0:29]
+            # HACK ALERT Pick the top 30 candidate locations that are closest to the DPA in terms of distance
+            if len(candidate_locs) >= 30  :
+                candidate_locs = candidate_locs[0:29]
 
 
 
-                        assert len(candidate_locs) > 0
+            assert len(candidate_locs) > 0
+            print "---- candidate locs ----", candidate_locs
 
-                        if dpa_polygon.area == 0:
-                            print "Empty dpa"
-                            continue
+            if dpa_polygon.area == 0:
+                print "Empty dpa"
+                continue
 
-                        # Set global parameter (this is ugly -- need to change this)
-                        antennacover.NDIVISIONS = 100
+            # Set global parameter (this is ugly -- need to change this)
+            antennacover.NDIVISIONS = 100
         
-                        # Read the detection coverage files. First check if we are given a directory with multiple
-                        # detection coverage files - we'll try these one at a time.
-                        if os.path.isdir(detection_coverage_dir) :
-                            # Form a tuple list of aperture angle and detection coverage file name.
-                            # We want to apply increasing angles if there is more than one sensor in a DPA.
-                            detection_coverage_file_list = [(antennacover.read_aperture_angle(detection_coverage_dir+ "/" + dcf),detection_coverage_dir + "/" + dcf) 
+            # Read the detection coverage files. First check if we are given a directory with multiple
+            # detection coverage files - we'll try these one at a time.
+            if os.path.isdir(detection_coverage_dir) :
+                # Form a tuple list of aperture angle and detection coverage file name.
+                # We want to apply increasing angles if there is more than one sensor in a DPA.
+                detection_coverage_file_list = [(antennacover.read_aperture_angle(detection_coverage_dir+ "/" + dcf),detection_coverage_dir + "/" + dcf) 
                                                 for dcf in os.listdir(detection_coverage_dir)]
 
-                            # Sort these in order of increasing antenna angle.
-                            sorted_detection_coverage_files = sorted(detection_coverage_file_list, key = lambda(t) : t[0])
-                            # Put the result in a list
-                            detection_coverage_files = [s[1]  for s in sorted_detection_coverage_files]
-                        else:
-                            # We are given a single antenna cover file.
-                            detection_coverage_files = [detection_coverage_dir]
+                # Sort these in order of increasing antenna angle.
+                sorted_detection_coverage_files = sorted(detection_coverage_file_list, key = lambda(t) : t[0])
+                # Put the result in a list
+                detection_coverage_files = [s[1]  for s in sorted_detection_coverage_files]
+            else:
+                # We are given a single antenna cover file.
+                detection_coverage_files = [detection_coverage_dir]
                 
                             
-                        print "Antenna Detection Coverage files ", detection_coverage_files
-                        for detection_coverage_file in detection_coverage_files:
-                            # Read the aperture angle from the file.
-                            aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
-                            antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
-                            cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
+            print "Antenna Detection Coverage files ", detection_coverage_files
+            for detection_coverage_file in detection_coverage_files:
+                # Read the aperture angle from the file.
+                aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
+                antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
+                cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
 
-                            if len(cover) > 1:
-                                # There isn't any point in annealing if you have only one lobe.
-                                annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
-                                annealer.anneal()
-                                newcover = annealer.get_result()
-                                if len(newcover) == 1:
-                                    break
-                            else:
-                                newcover = cover
-                                break
 
-                        # Keep the cover around for later analysis. dpa_covers is the cover for each DPA
-                        dpa_covers.append(newcover)
-                        # dpa_polygons is an array containing DPA polygons
-                        dpa_polygons.append(dpa_polygon)
-                        # Update the KML document.
-                        f = kml.Folder(kmlDoc.ns, 'Antennas_' + feature2.name, 'Antennas', 'Antenna Angles')
-                        placementDoc.append(f)
-                        feature2.append(f)
-                        cover_lobes = None
-                        for c in newcover:
-                            center = c[0]
-                            index = c[1]
-                            angle = c[2]
-                            lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
-                            if cover_lobes is None:
-                                cover_lobes = lobe
-                            else:
-                                cover_lobes = cover_lobes.union(lobe)
-                                
-                            # Note that our frame of reference is Due EAST but the conventional 
-                            # way of specifying angles is due north.
-                            angle_degrees = (angle/math.pi*180 -90)%360 
-                            p = kml.Placemark(kmlDoc.ns, "antenna"+str(lobe_counter), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
-                                            + "\nAperture angle: " + str(aperture_angle) + " degrees" 
-                                            + "\nAzimuth angle: " +  str(float(np.round(angle_degrees,2))) + " degrees from due North. " )
-                            p.geometry = projection.polygon_to_latlon(lobe)
-                            p.name = feature2.name
-                            f.append(p)
-                            lobe_counter = lobe_counter + 1
+                """if len(cover) > 1:
+                    # There isn't any point in annealing if you have only one lobe.
+                    annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
+                    annealer.anneal()
+                    newcover = annealer.get_result()
+                    if len(newcover) == 1:
+                        break
+                else:
+                    newcover = cover
+                    break """
 
-                        # antenna_lobes is an array consisting of composite antenna cover polygons.
-                        antenna_lobes.append(cover_lobes)
-                        interference_contour = list(dpa_polygon.exterior.coords)
-                        indexes = [newcover[i][1] for i in range(0,len(newcover))]
-                        angles  = [newcover[i][2] for i in range(0,len(newcover))]
-                        cover_centers = [newcover[i][0] for i in range(0,len(newcover))]
+            # ****** TAKE THIS OUT WHEN YOU PUT SIM ANNEALING ****
+            newcover = cover
+            # Keep the cover around for later analysis. dpa_covers is the cover for each DPA
+            dpa_covers.append(newcover)
+            # dpa_polygons is an array containing DPA polygons
+            dpa_polygons.append(dpa_polygon)
+            # Update the KML document.
+            f = kml.Folder(ns, 'Antennas_' + dpa_id, 'Antennas', 'Antenna Angles')
+            placementDoc.append(f)
+            feature1[feature_index].append(f)
+            cover_lobes = None
+            for c in newcover:
+                center = c[0]
+                index = c[1]
+                angle = c[2]
+                lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
+                if cover_lobes is None:
+                    cover_lobes = lobe
+                else:
+                    cover_lobes = cover_lobes.union(lobe)
+                
+                # Note that our frame of reference is Due EAST but the conventional 
+                # way of specifying angles is due north.
+                angle_degrees = (angle/math.pi*180 -90)%360 
+                p = kml.Placemark(ns, "antenna"+str(lobe_counter), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
+                                  + "\nAperture angle: " + str(aperture_angle) + " degrees" 
+                                  + "\nAzimuth angle: " +  str(float(np.round(angle_degrees,2))) + " degrees from due North. " )
+                p.geometry = projection.polygon_to_latlon(lobe)
+                p.name = Doc.name.text
+                f.append(p)
+                lobe_counter = lobe_counter + 1
 
-                        # Compute the excess area. We cant use shapely for this directly because the
-                        # union could be non-simple. 
-                        # Get the bounds of the area of interest.
-                        minx,miny,maxx,maxy = cover_lobes.union(dpa_polygon).bounds
-                        outage_counter = 0
-                        excess_area_counter = 0
-                        coverage_counter = 0
-                        # Try to keep the integration regions square in shape.
-                        aspect_ratio = (maxy-miny)/(maxx - minx)
-                        if aspect_ratio < 1:
-                            YDIVS = 100
-                            XDIVS = int(100/aspect_ratio)
-                        else:
-                            XDIVS = 100
-                            YDIVS = int(100/aspect_ratio)
+            # antenna_lobes is an array consisting of composite antenna cover polygons.
+            antenna_lobes.append(cover_lobes)
+            interference_contour = list(dpa_polygon.exterior.coords)
+            indexes = [newcover[i][1] for i in range(0,len(newcover))]
+            angles  = [newcover[i][2] for i in range(0,len(newcover))]
+            cover_centers = [newcover[i][0] for i in range(0,len(newcover))]
 
-                        integration_element_area = float((maxx-minx)*(maxy-miny) / ( XDIVS * YDIVS ))
+            # Compute the excess area. We cant use shapely for this directly because the
+            # union could be non-simple. 
+            # Get the bounds of the area of interest.
+            minx,miny,maxx,maxy = cover_lobes.union(dpa_polygon).bounds
+            outage_counter = 0
+            excess_area_counter = 0
+            coverage_counter = 0
+            # Try to keep the integration regions square in shape.
+            aspect_ratio = (maxy-miny)/(maxx - minx)
+            if aspect_ratio < 1:
+                YDIVS = 100
+                XDIVS = int(100/aspect_ratio)
+            else:
+                XDIVS = 100
+                YDIVS = int(100/aspect_ratio)
+            
+            integration_element_area = float((maxx-minx)*(maxy-miny) / ( XDIVS * YDIVS ))
                         
-                        for i in range(0,XDIVS):
-                            for j in range(0,YDIVS):
-                                x = minx + i*(maxx-minx)/XDIVS
-                                y = miny + j*(maxy-miny)/YDIVS
-                                p = Point(x,y)
-                                if dpa_polygon.contains(p) and not cover_lobes.contains(p):
-                                    outage_counter = outage_counter + 1
-                                if cover_lobes.contains(p) and not dpa_polygon.contains(p):
-                                    excess_area_counter = excess_area_counter + 1
-                                if dpa_polygon.contains(p):
-                                    coverage_counter = coverage_counter + 1
+            for i in range(0,XDIVS):
+                for j in range(0,YDIVS):
+                    x = minx + i*(maxx-minx)/XDIVS
+                    y = miny + j*(maxy-miny)/YDIVS
+                    p = Point(x,y)
+                    if dpa_polygon.contains(p) and not cover_lobes.contains(p):
+                        outage_counter = outage_counter + 1
+                    if cover_lobes.contains(p) and not dpa_polygon.contains(p):
+                        excess_area_counter = excess_area_counter + 1
+                    if dpa_polygon.contains(p):
+                        coverage_counter = coverage_counter + 1
                         
-                        # Compute the areas for THIS DPA. 
-                        outage_area = outage_counter*integration_element_area
-                        # Note that the Excess area here does not distinguish between sea and land.
-                        # Also does not distinguish between this DPA and its neighbor. 
-                        # We evaluate that later across all DPAs.
-                        excess_area = excess_area_counter*integration_element_area
-                        coverage_area = coverage_counter*integration_element_area
+            # Compute the areas for THIS DPA. 
+            outage_area = outage_counter*integration_element_area
+            # Note that the Excess area here does not distinguish between sea and land.
+            # Also does not distinguish between this DPA and its neighbor. 
+            # We evaluate that later across all DPAs.
+            excess_area = excess_area_counter*integration_element_area
+            coverage_area = coverage_counter*integration_element_area
 
-                        f = kml.Folder(kmlDoc.ns, 'Sensors_' + feature2.name, 'Sensors', 'Antenna Placement')
-                        placementDoc.append(f)
-                        feature2.append(f)
-                        sensor_locs = list(set([c[0] for c in newcover]))
-                        indexes = []
-                        for sensor_loc in sensor_locs:
-                            for c in newcover:
-                                if c[0] == sensor_loc:
-                                    indexes.append(c[1])
-                                    break
+            f = kml.Folder(ns, 'Sensors_' + dpa_id, 'Sensors', 'Antenna Placement')
+            placementDoc.append(f)
+            feature1[feature_index].append(f)
+            sensor_locs = list(set([c[0] for c in newcover]))
+            indexes = []
+            for sensor_loc in sensor_locs:
+                for c in newcover:
+                    if c[0] == sensor_loc:
+                        indexes.append(c[1])
+                        break
 
-                        # Make up a placemark for each sensor.
-                        for i in range(0,len(sensor_locs)) :
-                            sensor_loc = sensor_locs[i]
-                            lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
-                            p = kml.Placemark(kmlDoc.ns,"sensor_" + str(sensor_counter), "sensor: " + feature2.name, 
-                                            "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + "\nlon : " + str(lon) + " lat : " +  str(lat))
-                            p.geometry = Point(lon,lat)
-                            p.styleUrl = "#msn_shaded_dot1"
-                            i = i + 1
-                            # Update the sensor counter.
-                            sensor_counter = sensor_counter + 1
-                            f.append(p)
+            # Make up a placemark for each sensor.
+            for i in range(0,len(sensor_locs)) :
+                sensor_loc = sensor_locs[i]
+                lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
+                p = kml.Placemark(ns,"sensor_" + str(sensor_counter), "sensor: " + dpa_id, 
+                                  "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + "\nlon : " + str(lon) + " lat : " +  str(lat))
+                p.geometry = Point(lon,lat)
+                p.styleUrl = "#msn_shaded_dot1"
+                i = i + 1
+                # Update the sensor counter.
+                sensor_counter = sensor_counter + 1
+                f.append(p)
 
-                        placementDoc.description = placementDoc.description + \
-                                                    "\nDPA Name " + feature2.name +\
-                                                    "\nsensor_count " + str(len(sensor_locs)) + \
-                                                    "\nexcess_area (sq. m): " + str(float(np.round(excess_area,2))) + \
-                                                    "\noutage_area (sq. m): " + str(float(np.round(outage_area,2))) + \
-                                                    "\ndpa_area (sq. m): " + str(float(np.round(coverage_area,2)))
+            print "--------- num sensors ------ ", len(sensor_locs)
+            placementDoc.description = placementDoc.description + \
+                                       "\nDPA Name " + dpa_id +\
+                                       "\nsensor_count " + str(len(sensor_locs)) + \
+                                       "\nexcess_area (sq. m): " + str(float(np.round(excess_area,2))) + \
+                                       "\noutage_area (sq. m): " + str(float(np.round(outage_area,2))) + \
+                                       "\ndpa_area (sq. m): " + str(float(np.round(coverage_area,2)))
 
-                        total_area = total_area + dpa_polygon.area
-                        
-                        with open(output_directory + "/" + feature2.name + ".kml", 'w') as f:
-                            output = sensorPlacement.to_string(prettyprint=True)
-                            f.write(output)
-                        print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
+            total_area = total_area + dpa_polygon.area
+        
+            with open(output_directory + "/" + dpa_id + ".kml", 'w') as f:
+                output = sensorPlacement.to_string(prettyprint=True)
+                f.write(output)
+            print "Done " + testName + " Sensor_count " + str(len(sensor_locs))
+        feature_index = feature_index + 1    
 
 
     with open(output_directory + "/antenna-cover.kml","w") as f:
