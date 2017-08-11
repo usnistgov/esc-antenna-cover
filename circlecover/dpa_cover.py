@@ -124,8 +124,8 @@ if __name__=="__main__":
                                     "increasing order of  Aperture until a single sensor can cover the \n" + 
                                     "entire DPA OR the largest aperture has been reached.")
     parser.add_argument("-e", default=None, help="Optionally specified sensor placement forbidden regions (comma separated).")
-    parser.add_argument("-d", default = "west_dpa_10km", help = "DPA id regular expression for which to compute cover " +
-                                                    "(eg. east_dpa_10km_* for all east_dpa).")
+    parser.add_argument("-d", default = "east_dpa*", help = "DPA id regular expression for which to compute cover " +
+                                                    "(eg. east_dpa* for all east_dpa).")
     parser.add_argument("-o",default="./", help="Output file path to directory where you want the resultant kml " + 
                                                 "files to be written (default is current directory)")
     args = parser.parse_args()
@@ -214,15 +214,15 @@ if __name__=="__main__":
             sensorPlacement.append(placementDoc)
             p = Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text
             coord = string.split(p)
-            print "------ coord = ", coord
+            #print "------ coord = ", coord
             
             latitudes =[]
             longitudes =[]
             for p in string.split(Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text):
                 pts = string.split(p, ',')
-                latitudes.append(float(pts[0]))
-                longitudes.append(float(pts[1]))
-            print "---- lats  ", latitudes
+                longitudes.append(float(pts[0]))
+                latitudes.append(float(pts[1]))
+            #print "---- lats  ", latitudes
             #latitudes = [string.split(p, ',') for p in string.split(Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates.text)]
             #longitudes = [p[0] for p in Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates]
             x,y = basemap(longitudes, latitudes)
@@ -247,7 +247,7 @@ if __name__=="__main__":
             for k in range(0,500):
                 # In some cases, 10 KM buffer does not result in any points or in very few points.
                 # we keep extending the boundary till we get 20 points to choose from where we can place sensors.
-                extended_dpa_polygon = dpa_polygon.buffer((1+k*0.5)*10*1000) 
+                extended_dpa_polygon = dpa_polygon.buffer((1+k*0.5)*1*1000) 
                 candidate_locs = [p for p in coast_coords_xy if extended_dpa_polygon.contains(Point(p)) and not dpa_polygon.contains(Point(p))]
                 if len(candidate_locs) >= 100: 
                     break
@@ -299,16 +299,18 @@ if __name__=="__main__":
                 cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
 
 
-                """if len(cover) > 1:
-                    # There isn't any point in annealing if you have only one lobe.
-                    annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
-                    annealer.anneal()
-                    newcover = annealer.get_result()
-                    if len(newcover) == 1:
-                        break
-                else:
-                    newcover = cover
-                    break """
+            """
+            if len(cover) > 1:
+               # There isn't any point in annealing if you have only one lobe.
+               annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
+               annealer.anneal()
+               newcover = annealer.get_result()
+               if len(newcover) == 1:
+                   break
+            else:
+               newcover = cover
+               break 
+            """
 
             # ****** TAKE THIS OUT WHEN YOU PUT SIM ANNEALING ****
             newcover = cover
@@ -434,19 +436,20 @@ if __name__=="__main__":
         
     
     print "Computing intersection area "
-    # Intersecting area is the area outside the DPA that is covered by this DPA.
-    # It represents the area which is incorrectly detected by a DPA sensor meant for 
+    # Intersecting area is the area outside the DPA that is covered by the sensors of this DPA.
+    # It represents the area which is incorrectly detected by a DPA sensors meant for 
     # a given DPA.
     intersecting_area = 0
     for i in range(0,len(dpa_covers)):
-        # antenna_cover is the union of all the lobes covering this DPA.
+        # antenna_lobes[i] is an array consisting of the union of lobes covering DPA i.
         antenna_cover = antenna_lobes[i]
-        for j in range(0,len(dpa_covers)):
+        for j in range(0,len(dpa_polygons)):
             if j != i :
                 # intersecting area between the cover and DPA is the area within some DPA that is covered
                 # by a sensor not belonging to the DPA (i.e. the detection area that
-                # region not belonging to it).
-                intersecting_area = intersecting_area + antenna_cover.intersection(dpa_polygons[i]).area
+                # region not belonging to it). We compute the intersection of the cover with each dpa 
+                # polygon except the one it is supposed to cover.
+                intersecting_area = intersecting_area + antenna_cover.intersection(dpa_polygons[j]).area
 
     # Probability of false DPA activation is the probability of activating a DPA not belonging to a given DPA cover.
     prob_false_dpa_activation = intersecting_area / total_area
