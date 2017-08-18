@@ -52,7 +52,7 @@ from mapprojection import Projection
 from pykml import parser as kml_parser
 #from epsgprojection import Projection
 
-
+MAX_CANDIDATE_LOCS=30
 
 def pts_coast(projection,basemap):
     coast_xy = []
@@ -241,8 +241,38 @@ if __name__=="__main__":
                 if p.area > max_area:
                     dpa_polygon = p.buffer(0)
                     max_area = p.area
+            
+            dist = []
+            print "len(coast_coord) = ", len(coast_coords_xy)
+            for p in coast_coords_xy:
+                # Exclude candidate locations that are in the forbidden regions
+                if is_forbidden_loc(p,forbidden_polygons):
+                    dist.append(4294967295) # make the distance large
+                    continue
+                point = Point(p)
+                #print "---- point -------" , point
+                dist.append(dpa_polygon.distance(point))
+            
+            dist = sorted(range(len(dist)), key=lambda k: dist[k]) # dist has the indices of coast_coord_xy sorted in the order of distance from the DPA
+            candidate_locs = []
+            for i in range(MAX_CANDIDATE_LOCS):
+                candidate_locs.append(coast_coords_xy[dist[i]])
+
+            ## ----- start of code to print candidate location in long lat (this code is not needed)
+            lon = []
+            lat = []
+            for i in range(len(candidate_locs)):
+               p = Point(candidate_locs[i])
+               cand_lon, cand_lat = basemap(p.x, p.y, inverse=True)
+               lon.append(cand_lon)
+               lat.append(cand_lat)
+
+            lonlat = zip(lon, lat)
+            print "lonlat of candidate loc ", lonlat
+            ## ----- end of code to print candidate location in long lat
 
             print "------ polygon area ------ ", dpa_polygon.area
+            """
             dpa_locs = dpa_polygon.exterior.coords
             for k in range(0,500):
                 # In some cases, 10 KM buffer does not result in any points or in very few points.
@@ -261,7 +291,7 @@ if __name__=="__main__":
             # HACK ALERT Pick the top 30 candidate locations that are closest to the DPA in terms of distance
             if len(candidate_locs) >= 30  :
                 candidate_locs = candidate_locs[0:29]
-
+            """
 
 
             assert len(candidate_locs) > 0
@@ -299,21 +329,21 @@ if __name__=="__main__":
                 cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
 
 
-            """
             if len(cover) > 1:
                # There isn't any point in annealing if you have only one lobe.
                annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
                annealer.anneal()
                newcover = annealer.get_result()
                if len(newcover) == 1:
-                   break
+                   print "newcover has one element"
+#                   break
             else:
-               newcover = cover
-               break 
-            """
+                print "----- newcover has one element"
+                newcover = cover
+#               break 
 
             # ****** TAKE THIS OUT WHEN YOU PUT SIM ANNEALING ****
-            newcover = cover
+            #newcover = cover
             # Keep the cover around for later analysis. dpa_covers is the cover for each DPA
             dpa_covers.append(newcover)
             # dpa_polygons is an array containing DPA polygons
