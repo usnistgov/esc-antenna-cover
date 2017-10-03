@@ -53,6 +53,7 @@ from pykml import parser as kml_parser
 #from epsgprojection import Projection
 
 MAX_CANDIDATE_LOCS=30
+DISTANCE_FROM_COAST = 50000 # distance from coast to consider a point inside sea in meters
 
 def pts_coast(projection,basemap):
     coast_xy = []
@@ -177,6 +178,7 @@ if __name__=="__main__":
 
     # Get the coastal coordinates from the basemap
     coast_coords_xy = pts_coast(projection,basemap)
+    coast_coords_linestring = LineString(coast_coords_xy)
     # Keeps track of the number of sensors.
     sensor_counter = 0
     # Keep track of the number of antenna lobes.
@@ -197,13 +199,13 @@ if __name__=="__main__":
     #dpa_id = root.Folder.Document.name.text
     #print "dpa_id ", root.Folder.Document.name.text
     feature_index = 0
+    dpa_metrics =[]
     for Doc in root.Folder.Document:
         #print "---- coord ", Doc.Placemark.Polygon.outerBoundaryIs.LinearRing.coordinates
         dpa_id = Doc.name.text
         print "---- dpa_id ", dpa_id
         if dpa_regexp.match(dpa_id):
-            print "------- matched dpa ------ ", dpa_id
-#            if type(feature1) is fastkml.kml.Document and  dpa_regexp.match(feature1.name):
+            #print "------- matched dpa ------ ", dpa_id
             testName = "DPA : " + dpa_id
             print "Processing " + dpa_id
             sensorPlacement = kml.KML()
@@ -268,7 +270,7 @@ if __name__=="__main__":
                lat.append(cand_lat)
 
             lonlat = zip(lon, lat)
-            print "lonlat of candidate loc ", lonlat
+            #print "lonlat of candidate loc ", lonlat
             ## ----- end of code to print candidate location in long lat
 
             print "------ polygon area ------ ", dpa_polygon.area
@@ -295,7 +297,7 @@ if __name__=="__main__":
 
 
             assert len(candidate_locs) > 0
-            print "---- candidate locs ----", candidate_locs
+            #print "---- candidate locs ----", candidate_locs
 
             if dpa_polygon.area == 0:
                 print "Empty dpa"
@@ -322,13 +324,33 @@ if __name__=="__main__":
                 
                             
             print "Antenna Detection Coverage files ", detection_coverage_files
+            min_cover_lobes = None
             for detection_coverage_file in detection_coverage_files:
                 # Read the aperture angle from the file.
                 aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
                 antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
                 cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
+                cover_lobes = None
+                for c in cover:
+                    center = c[0]
+                    index = c[1]
+                    angle = c[2]
+                    lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
+                    if cover_lobes is None:
+                        cover_lobes = lobe
+                    else:
+                        cover_lobes = cover_lobes.union(lobe)
+                #print "--- AREA ---", cover_lobes.area
+                if  (min_cover_lobes is None):
+                    min_cover_lobes = cover_lobes
+                    min_cover = cover
+                elif (cover_lobes.area < min_cover_lobes.area):
+                    min_cover_lobes = cover_lobes
+                    min_cover = cover
 
-
+            #print "--- COVER AREA ---", min_cover_lobes.area
+            cover = min_cover
+            cover_lobes = min_cover_lobes
             if len(cover) > 1:
                # There isn't any point in annealing if you have only one lobe.
                annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
@@ -336,11 +358,10 @@ if __name__=="__main__":
                newcover = annealer.get_result()
                if len(newcover) == 1:
                    print "newcover has one element"
-#                   break
             else:
                 print "----- newcover has one element"
                 newcover = cover
-#               break 
+
 
             # ****** TAKE THIS OUT WHEN YOU PUT SIM ANNEALING ****
             #newcover = cover
@@ -352,17 +373,11 @@ if __name__=="__main__":
             f = kml.Folder(ns, 'Antennas_' + dpa_id, 'Antennas', 'Antenna Angles')
             placementDoc.append(f)
             feature1[feature_index].append(f)
-            cover_lobes = None
             for c in newcover:
                 center = c[0]
                 index = c[1]
                 angle = c[2]
                 lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
-                if cover_lobes is None:
-                    cover_lobes = lobe
-                else:
-                    cover_lobes = cover_lobes.union(lobe)
-                
                 # Note that our frame of reference is Due EAST but the conventional 
                 # way of specifying angles is due north.
                 angle_degrees = (angle/math.pi*180 -90)%360 
@@ -374,6 +389,7 @@ if __name__=="__main__":
                 f.append(p)
                 lobe_counter = lobe_counter + 1
 
+            print "---- covered lobes area, lobe_counter ----", cover_lobes.area, lobe_counter
             # antenna_lobes is an array consisting of composite antenna cover polygons.
             antenna_lobes.append(cover_lobes)
             interference_contour = list(dpa_polygon.exterior.coords)
@@ -388,6 +404,7 @@ if __name__=="__main__":
             outage_counter = 0
             excess_area_counter = 0
             coverage_counter = 0
+            sea_excess_counter = 0
             # Try to keep the integration regions square in shape.
             aspect_ratio = (maxy-miny)/(maxx - minx)
             if aspect_ratio < 1:
@@ -398,7 +415,6 @@ if __name__=="__main__":
                 YDIVS = int(100/aspect_ratio)
             
             integration_element_area = float((maxx-minx)*(maxy-miny) / ( XDIVS * YDIVS ))
-                        
             for i in range(0,XDIVS):
                 for j in range(0,YDIVS):
                     x = minx + i*(maxx-minx)/XDIVS
@@ -407,10 +423,16 @@ if __name__=="__main__":
                     if dpa_polygon.contains(p) and not cover_lobes.contains(p):
                         outage_counter = outage_counter + 1
                     if cover_lobes.contains(p) and not dpa_polygon.contains(p):
-                        excess_area_counter = excess_area_counter + 1
+                        excess_area_counter = excess_area_counter + 1 
+                        # excess area outside the DPA; includes area on the land as well
+                        if (not basemap.is_land(x,y)):
+                            sea_excess_counter += 1 # this includes area from nbring DPAs
+                         # p.distance(coast_coords_linestring) does not give correct results; so avoid using it.
+#                        if ((not basemap.is_land(x,y)) and (p.distance(coast_coords_linestring) > DISTANCE_FROM_COAST)) :
                     if dpa_polygon.contains(p):
                         coverage_counter = coverage_counter + 1
-                        
+
+
             # Compute the areas for THIS DPA. 
             outage_area = outage_counter*integration_element_area
             # Note that the Excess area here does not distinguish between sea and land.
@@ -418,6 +440,9 @@ if __name__=="__main__":
             # We evaluate that later across all DPAs.
             excess_area = excess_area_counter*integration_element_area
             coverage_area = coverage_counter*integration_element_area
+            sea_excess_area = sea_excess_counter*integration_element_area
+            # includes area covered in the nbring DPAs
+            print "----- ", outage_counter, excess_area_counter, coverage_counter, sea_excess_counter, integration_element_area
 
             f = kml.Folder(ns, 'Sensors_' + dpa_id, 'Sensors', 'Antenna Placement')
             placementDoc.append(f)
@@ -452,6 +477,20 @@ if __name__=="__main__":
                                        "\ndpa_area (sq. m): " + str(float(np.round(coverage_area,2)))
 
             total_area = total_area + dpa_polygon.area
+            individual_dpa_metrics = {
+#                'grid_area' : integration_element_area,
+                'dpa_id' : dpa_id,
+                'excess_area' : excess_area,
+                'outage_area' : outage_area,
+                'coverage_area' : coverage_area,
+                'dpa_area' : dpa_polygon.area,
+                'sea_excess_area' : sea_excess_area, # we need to take out nbring DPA area (later)
+                'nbr_excess_area' : 0.0,  # excess area over ndring DPAs; will be calculated later
+                'p_outage' : 0.0,
+                'p_fa_sea' : 0.0,
+                'p_fa_nbrDPA' : 0.0
+                }
+            dpa_metrics.append(individual_dpa_metrics)
         
             with open(output_directory + "/" + dpa_id + ".kml", 'w') as f:
                 output = sensorPlacement.to_string(prettyprint=True)
@@ -473,16 +512,30 @@ if __name__=="__main__":
     for i in range(0,len(dpa_covers)):
         # antenna_lobes[i] is an array consisting of the union of lobes covering DPA i.
         antenna_cover = antenna_lobes[i]
+        # note that dpa_coveres, antenna_cover have the same indices 'i'. This is the antenna cover
+        # for dpa_polygons[i].
+        nbr_excess_area = 0
         for j in range(0,len(dpa_polygons)):
             if j != i :
-                # intersecting area between the cover and DPA is the area within some DPA that is covered
-                # by a sensor not belonging to the DPA (i.e. the detection area that
-                # region not belonging to it). We compute the intersection of the cover with each dpa 
+                # intersecting area between the cover and DPA is the area within some nbring DPA that is covered
+                # by a sensor not belonging to the DPA.
+                # We compute the intersection of the cover with each dpa 
                 # polygon except the one it is supposed to cover.
-                intersecting_area = intersecting_area + antenna_cover.intersection(dpa_polygons[j]).area
+                common_poly = antenna_cover.intersection(dpa_polygons[j])
+                area = common_poly.area
+                intersecting_area += area
+                nbr_excess_area += area
+
+        dpa_metrics[i]['nbr_excess_area'] = nbr_excess_area
+        dpa_metrics[i]['sea_excess_area'] -= nbr_excess_area
+        dpa_metrics[i]['p_outage'] = dpa_metrics[i]['outage_area']/dpa_metrics[j]['dpa_area']
+        dpa_metrics[i]['p_fa_sea'] = dpa_metrics[i]['sea_excess_area']/dpa_metrics[j]['coverage_area']
+        dpa_metrics[i]['p_fa_nbrDPA'] = dpa_metrics[i]['nbr_excess_area']/dpa_metrics[j]['coverage_area']
+        print dpa_metrics[i]
+        print "----------------------------------------------------------------"
 
     # Probability of false DPA activation is the probability of activating a DPA not belonging to a given DPA cover.
-    prob_false_dpa_activation = intersecting_area / total_area
+    """prob_false_dpa_activation = intersecting_area / total_area
 
     print "intersection_area " , intersecting_area, " total_area ", total_area
     print "Ratio of intersection to total area " , str(prob_false_dpa_activation)
@@ -520,7 +573,6 @@ if __name__=="__main__":
     grid_point_area = abs((maxx-minx)*(maxy-miny)) / (NDIVISIONS_X*NDIVISIONS_Y)
     
     # Get a line string of coastal coordinates.
-    coast_coords_linestring = LineString(coast_coords_xy)
     for i in range(0,NDIVISIONS_X):
         for j in range(0,NDIVISIONS_Y):
             x,y = minx + i*deltax, miny + j*deltay
@@ -542,21 +594,21 @@ if __name__=="__main__":
     total_area =  total_area_counter*grid_point_area
     outage_area = outage_area_counter*grid_point_area
     false_detection_probability = np.round(sea_excess_area/total_area,2)
-    outage_probability = np.round(outage_area/total_area,2)
+    outage_probability = np.round(outage_area/total_area,2)"""
 
     
 
     with open( output_directory + "/analysis.txt",'w') as f:
         f.write("t : total_dpa_area (sq. m) = " + str(float(np.round(total_area,2))) + "\n")
-        f.write("s : Sensor area outside DPA of sensor covered by DPA (total) (sq. m) =  " + str(float(np.round(intersecting_area,2))) + "\n") 
-        f.write("k : Sea Excess Area = " + str(float(np.round(sea_excess_area,2))) + "\n")
-        f.write("h : outage area  = " + str(float(np.round(outage_area,2))) + "\n\n")
-        f.write("Probability redundant DPA activation (s/t)  =  "  +  str(float(np.round(prob_false_dpa_activation,2))) + "\n\n")
-        f.write("Probability of false detection ( sea excess Area to total DPA area (k/t) ) =  " + str(false_detection_probability) + "\n\n")
-        f.write("Probability of missed detection ( outage area to total DPA area (h/t) ) = " + str(outage_probability) + "\n\n")
+        #f.write("s : Sensor area outside DPA of sensor covered by DPA (total) (sq. m) =  " + str(float(np.round(intersecting_area,2))) + "\n") 
+        #f.write("k : Sea Excess Area = " + str(float(np.round(sea_excess_area,2))) + "\n")
+        #f.write("h : outage area  = " + str(float(np.round(outage_area,2))) + "\n\n")
+        #f.write("Probability redundant DPA activation (s/t)  =  "  +  str(float(np.round(prob_false_dpa_activation,2))) + "\n\n")
+        #f.write("Probability of false detection ( sea excess Area to total DPA area (k/t) ) =  " + str(false_detection_probability) + "\n\n")
+        #f.write("Probability of missed detection ( outage area to total DPA area (h/t) ) = " + str(outage_probability) + "\n\n")
         f.write("Sensor count =  " + str(sensor_counter) + "\n\n")
         f.write("Antenna count = " + str(lobe_counter) + "\n\n")            
-                
+
     print "**** DONE ************"
 
     
