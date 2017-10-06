@@ -327,7 +327,6 @@ if __name__=="__main__":
             min_cover_lobes = None
             for detection_coverage_file in detection_coverage_files:
                 # Read the aperture angle from the file.
-                aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
                 antenna_cover_patterns = antennacover.read_detection_coverage(detection_coverage_file,coverage_units="m")
                 cover = antennacover.min_antenna_area_cover_greedy(candidate_locs, dpa_polygon, detection_coverage_file, min_center_distance=0,tol=.005,coverage_units="m")
                 cover_lobes = None
@@ -344,9 +343,11 @@ if __name__=="__main__":
                 if  (min_cover_lobes is None):
                     min_cover_lobes = cover_lobes
                     min_cover = cover
+                    aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
                 elif (cover_lobes.area < min_cover_lobes.area):
                     min_cover_lobes = cover_lobes
                     min_cover = cover
+                    aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
 
             #print "--- COVER AREA ---", min_cover_lobes.area
             cover = min_cover
@@ -377,13 +378,15 @@ if __name__=="__main__":
                 center = c[0]
                 index = c[1]
                 angle = c[2]
+                lon,lat = basemap(center[0],center[1],inverse=True)
                 lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
                 # Note that our frame of reference is Due EAST but the conventional 
                 # way of specifying angles is due north.
                 angle_degrees = (angle/math.pi*180 -90)%360 
                 p = kml.Placemark(ns, "antenna"+str(lobe_counter), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
-                                  + "\nAperture angle: " + str(aperture_angle) + " degrees" 
-                                  + "\nAzimuth angle: " +  str(float(np.round(angle_degrees,2))) + " degrees from due North. " )
+                                  + " Aperture angle: " + str(aperture_angle) + " degrees" 
+                                  + " lon : " + str(lon) + " lat : " +  str(lat)
+                                  + "\nAzimuth angle: " +  str(float(np.round(angle_degrees,2))))
                 p.geometry = projection.polygon_to_latlon(lobe)
                 p.name = Doc.name.text
                 f.append(p)
@@ -478,7 +481,7 @@ if __name__=="__main__":
 
             total_area = total_area + dpa_polygon.area
             individual_dpa_metrics = {
-#                'grid_area' : integration_element_area,
+                'grid_area' : integration_element_area,
                 'dpa_id' : dpa_id,
                 'excess_area' : excess_area,
                 'outage_area' : outage_area,
