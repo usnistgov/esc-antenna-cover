@@ -345,16 +345,19 @@ if __name__=="__main__":
                     min_cover = cover
                     aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
                     min_antenna_cover_patterns = antenna_cover_patterns
+                    min_detection_coverage_file = detection_coverage_file
                 elif (cover_lobes.area < min_cover_lobes.area):
                     min_cover_lobes = cover_lobes
                     min_cover = cover
                     aperture_angle = antennacover.read_aperture_angle(detection_coverage_file)
                     min_antenna_cover_patterns = antenna_cover_patterns
+                    min_detection_coverage_file = detection_coverage_file
 
             #print "--- COVER AREA ---", min_cover_lobes.area
             cover = min_cover
             cover_lobes = min_cover_lobes
             antenna_cover_patterns = min_antenna_cover_patterns
+            detection_coverage_file = min_detection_coverage_file
             if len(cover) > 1:
                # There isn't any point in annealing if you have only one lobe.
                annealer = simannealer.SimAnneal(dpa_polygon,detection_coverage_file,cover,steps = 1000,tol=.005,coverage_units="m")
