@@ -538,9 +538,9 @@ if __name__=="__main__":
 
         dpa_metrics[i]['nbr_excess_area'] = nbr_excess_area
         dpa_metrics[i]['sea_excess_area'] -= nbr_excess_area
-        dpa_metrics[i]['p_outage'] = dpa_metrics[i]['outage_area']/dpa_metrics[j]['dpa_area']
-        dpa_metrics[i]['p_fa_sea'] = dpa_metrics[i]['sea_excess_area']/dpa_metrics[j]['coverage_area']
-        dpa_metrics[i]['p_fa_nbrDPA'] = dpa_metrics[i]['nbr_excess_area']/dpa_metrics[j]['coverage_area']
+        dpa_metrics[i]['p_outage'] = dpa_metrics[i]['outage_area']/dpa_metrics[i]['dpa_area']
+        dpa_metrics[i]['p_fa_sea'] = dpa_metrics[i]['sea_excess_area']/dpa_metrics[i]['coverage_area']
+        dpa_metrics[i]['p_fa_nbrDPA'] = dpa_metrics[i]['nbr_excess_area']/dpa_metrics[i]['coverage_area']
         print dpa_metrics[i]
         print "----------------------------------------------------------------"
 
