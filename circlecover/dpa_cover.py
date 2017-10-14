@@ -519,10 +519,10 @@ if __name__=="__main__":
     # It represents the area which is incorrectly detected by a DPA sensors meant for 
     # a given DPA.
     intersecting_area = 0
-    for i in range(0,len(dpa_covers)):
+    for i in range(0,len(dpa_polygons)):
         # antenna_lobes[i] is an array consisting of the union of lobes covering DPA i.
         antenna_cover = antenna_lobes[i]
-        # note that dpa_coveres, antenna_cover have the same indices 'i'. This is the antenna cover
+        # note that dpa_polygons, antenna_cover have the same indices 'i'. This is the antenna cover
         # for dpa_polygons[i].
         nbr_excess_area = 0
         for j in range(0,len(dpa_polygons)):
