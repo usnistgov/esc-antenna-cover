@@ -114,7 +114,8 @@ if __name__=="__main__":
     # Put the lat_0 lon_0 at the geographic center of the USA. Here are the extents of USA
     #-125.0011, 24.9493, -66.9326, 49.5904 Centroid:   -95.9669, 37.1669
 
-    basemap = Basemap(projection = 'hammer', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
+    # basemap = Basemap(projection = 'hammer', llcrnrlon = -125.0011, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.5904, resolution = 'l', lat_0= 37.1669, lon_0=-95.9669)
+    basemap = Basemap(projection = 'hammer', llcrnrlon = -126.57, llcrnrlat = 24.9493, urcrnrlon = -66.9326, urcrnrlat = 49.24, resolution = 'i', lat_0= 37.1669, lon_0=-95.9669)
 
     projection = Projection(basemap)
 
@@ -620,6 +621,7 @@ if __name__=="__main__":
         #f.write("Probability of missed detection ( outage area to total DPA area (h/t) ) = " + str(outage_probability) + "\n\n")
         f.write("Sensor count =  " + str(sensor_counter) + "\n\n")
         f.write("Antenna count = " + str(lobe_counter) + "\n\n")            
+        f.write("dpa_metrics = " + str(dpa_metrics) + "\n\n")
 
     print "**** DONE ************"
 
