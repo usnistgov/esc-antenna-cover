@@ -451,6 +451,7 @@ if __name__=="__main__":
             excess_area = excess_area_counter*integration_element_area
             coverage_area = coverage_counter*integration_element_area
             sea_excess_area = sea_excess_counter*integration_element_area
+            esc_coverage_area = sea_excess_area + coverage_area
             # includes area covered in the nbring DPAs
             print "----- ", outage_counter, excess_area_counter, coverage_counter, sea_excess_counter, integration_element_area
 
@@ -493,6 +494,7 @@ if __name__=="__main__":
                 'excess_area' : excess_area,
                 'outage_area' : outage_area,
                 'coverage_area' : coverage_area,
+                'esc_coverage_area' : esc_coverage_area,
                 'dpa_area' : dpa_polygon.area,
                 'sea_excess_area' : sea_excess_area, # we need to take out nbring DPA area (later)
                 'nbr_excess_area' : 0.0,  # excess area over ndring DPAs; will be calculated later
@@ -539,8 +541,8 @@ if __name__=="__main__":
         dpa_metrics[i]['nbr_excess_area'] = nbr_excess_area
         dpa_metrics[i]['sea_excess_area'] -= nbr_excess_area
         dpa_metrics[i]['p_outage'] = dpa_metrics[i]['outage_area']/dpa_metrics[i]['dpa_area']
-        dpa_metrics[i]['p_fa_sea'] = dpa_metrics[i]['sea_excess_area']/dpa_metrics[i]['coverage_area']
-        dpa_metrics[i]['p_fa_nbrDPA'] = dpa_metrics[i]['nbr_excess_area']/dpa_metrics[i]['coverage_area']
+        dpa_metrics[i]['p_fa_sea'] = dpa_metrics[i]['sea_excess_area']/dpa_metrics[i]['esc_coverage_area']
+        dpa_metrics[i]['p_fa_nbrDPA'] = dpa_metrics[i]['nbr_excess_area']/dpa_metrics[i]['esc_coverage_area']
         print dpa_metrics[i]
         print "----------------------------------------------------------------"
 
