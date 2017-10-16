@@ -125,7 +125,7 @@ if __name__=="__main__":
                                     "If a directory is specified then antenna covers are tried in  \n " + 
                                     "increasing order of  Aperture until a single sensor can cover the \n" + 
                                     "entire DPA OR the largest aperture has been reached.")
-    parser.add_argument("-e", default=None, help="Optionally specified sensor placement forbidden regions (comma separated).")
+    parser.add_argument("-e", default=None, help="Optionally specified sensor placement forbidden regions directory.")
     parser.add_argument("-d", default = "east_dpa*", help = "DPA id regular expression for which to compute cover " +
                                                     "(eg. east_dpa* for all east_dpa).")
     parser.add_argument("-o",default="./", help="Output file path to directory where you want the resultant kml " + 
@@ -134,8 +134,10 @@ if __name__=="__main__":
     dpa_file_name = args.k
     dpa_file_path = os.path.dirname(os.path.abspath(dpa_file_name))
     detection_coverage_dir = args.f
-    forbidden_region_files = args.e
+    forbidden_region_directory = args.e
     output_directory = args.o
+
+
     
     # East DPA and West DPA are best computed independently.
     if not args.d.startswith("east_dpa") and not args.d.startswith("west_dpa") :
@@ -144,6 +146,9 @@ if __name__=="__main__":
         sys.exit()
 
     print "---- args.d = ", args.d
+    print "---- args.f = ", args.f
+    print "---- args.e = ", args.e
+
     dpa_regexp = re.compile(args.d)
 
     # Make a directory to keep the results.
@@ -152,8 +157,9 @@ if __name__=="__main__":
 
     # Regions where we MAY NOT place sensors:
     forbidden_polygons = []
-    if forbidden_region_files is not None:
-        forbidden_region_file_names = forbidden_region_files.split(",")
+    if forbidden_region_directory is not None:
+        forbidden_region_file_names = [ forbidden_region_directory + "/" + f  for f in os.listdir(forbidden_region_directory) if os.path.isfile(forbidden_region_directory + "/" + f)]
+        print ( "Forbidden regions : " + str(forbidden_region_file_names) )
         for i in range(0,len(forbidden_region_file_names)):
             poly = parse_forbidden_region(projection,forbidden_region_file_names[i])
             forbidden_polygons.append(poly)
