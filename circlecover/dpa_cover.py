@@ -29,6 +29,7 @@
 import fastkml
 import pdb
 from fastkml import kml
+from fastkml import styles
 import sys
 import antennacover
 import math
@@ -396,12 +397,17 @@ if __name__=="__main__":
                 lobe = antennacover.translate_and_rotate(antenna_cover_patterns,center,index,angle)
                 # Note that our frame of reference is Due EAST but the conventional 
                 # way of specifying angles is due north.
-                angle_degrees = (angle/math.pi*180 -90)%360 
+                angle_degrees = (angle/math.pi*180 -90)%360
+                lstyle = styles.LineStyle(color='ff0055ff', width=2.0)
+                style = styles.Style(styles=[lstyle])
                 p = kml.Placemark(ns, "antenna"+str(lobe_counter), 'antenna', 'Sensitivity (dBm): ' + str(antenna_cover_patterns[index].sensitivity_dbm) 
-                                  + " Aperture angle: " + str(aperture_angle) + " degrees" 
-                                  + " lon : " + str(lon) + " lat : " +  str(lat)
-                                  + "\nAzimuth angle: " +  str(float(np.round(angle_degrees,2))))
+                                  + ", Aperture angle: " + str(aperture_angle) + " degrees"
+                                  + ", lon : " + str(lon) + " lat : " +  str(lat)
+                                  + ", Azimuth angle: " +  str(float(np.round(angle_degrees,2))),
+                                  styles=[style])
                 p.geometry = projection.polygon_to_latlon(lobe)
+                # p.styles.StyleUrl(url='http://maps.google.com/mapfiles/kml/shapes/placemark_square.png')
+                # p.styles.IconStyle(color='#ff5500', scale=2)
                 p.name = Doc.name.text
                 f.append(p)
                 lobe_counter = lobe_counter + 1
@@ -478,7 +484,7 @@ if __name__=="__main__":
                 sensor_loc = sensor_locs[i]
                 lon,lat = basemap(sensor_loc[0],sensor_loc[1],inverse=True)
                 p = kml.Placemark(ns,"sensor_" + str(sensor_counter), "sensor: " + dpa_id, 
-                                  "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + "\nlon : " + str(lon) + " lat : " +  str(lat))
+                                  "Sensitivity (dBm): " + str(antenna_cover_patterns[indexes[i]].sensitivity_dbm) + ", lon : " + str(lon) + " lat : " +  str(lat))
                 p.geometry = Point(lon,lat)
                 p.styleUrl = "#msn_shaded_dot1"
                 i = i + 1
@@ -488,8 +494,8 @@ if __name__=="__main__":
 
             print "--------- num sensors ------ ", len(sensor_locs)
             placementDoc.description = placementDoc.description + \
-                                       "\nDPA Name " + dpa_id +\
-                                       "\nsensor_count " + str(len(sensor_locs)) + \
+                                       "\nDPA Name: " + dpa_id +\
+                                       "\nsensor_count: " + str(len(sensor_locs)) + \
                                        "\nexcess_area (sq. m): " + str(float(np.round(excess_area,2))) + \
                                        "\noutage_area (sq. m): " + str(float(np.round(outage_area,2))) + \
                                        "\ndpa_area (sq. m): " + str(float(np.round(coverage_area,2)))
